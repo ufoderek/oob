@@ -11,7 +11,9 @@ DEFS=$(BCH_CONST_PARAMS)
 INC_COMPAT=-Icompat/include
 INCS=$(INC_COMPAT)
 
-oob: oob.o bch.o
+BINARY_NAME=oob$(ECC_CAP)
+
+$(BINARY_NAME): oob.o bch.o
 	$(GCC) $(CFLAGS) $^ -o $@
 
 bch.o: bch.c
@@ -23,4 +25,4 @@ oob.o: oob.c
 
 .PHONY: clean
 clean:
-	rm -f bch.o oob.o oob
+	rm -f bch.o oob.o oob32
