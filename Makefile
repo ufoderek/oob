@@ -13,16 +13,18 @@ INCS=$(INC_COMPAT)
 
 BINARY_NAME=oob$(ECC_CAP)
 
-$(BINARY_NAME): oob.o bch.o
+$(BINARY_NAME): oob.o libbch.o bch.o
 	$(GCC) $(CFLAGS) $^ -o $@
-
-bch.o: bch.c
-	$(GCC) $(CFLAGS) $(DEFS) $(INCS) $< -c
 
 oob.o: oob.c
 	$(GCC) $(CFLAGS) $(DEFS) $(INCS) $< -c
 
+libbch.o: libbch.c
+	$(GCC) $(CFLAGS) $(DEFS) $(INCS) $< -c
+
+bch.o: bch.c
+	$(GCC) $(CFLAGS) $(DEFS) $(INCS) $< -c
 
 .PHONY: clean
 clean:
-	rm -f bch.o oob.o oob32
+	rm -f bch.o libbch.o oob.o oob32

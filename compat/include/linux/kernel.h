@@ -5,9 +5,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-
-#define EINVAL -1
-#define EBADMSG -1
+#include <errno.h>
 
 #define GFP_KERNEL 0
 
@@ -16,7 +14,7 @@
 #define kfree free
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
-#define cpu_to_be32(x) x
+#define cpu_to_be32(x) __builtin_bswap32(x)
 #define unlikely(x) x
 
 #define __KERNEL_DIV_ROUND_UP(n, d) (((n) + (d) - 1) / (d))
