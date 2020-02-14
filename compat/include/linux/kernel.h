@@ -22,6 +22,9 @@
 #define __KERNEL_DIV_ROUND_UP(n, d) (((n) + (d) - 1) / (d))
 #define DIV_ROUND_UP __KERNEL_DIV_ROUND_UP
 
+#define KERN_ERR
+#define printk printf
+
 #define __WARN() printf("__WARN()")
 #define WARN_ON(condition) ({			\
 	int __ret_warn_on = !!(condition);	\
