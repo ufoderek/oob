@@ -224,9 +224,12 @@ int oob_verify(struct oob *oob)
 
 	ret = create_pthreads(oob, thread_oob_verify);
 
-	printf("oob: %llu correctable bitflips\n", oob->bitflips);
 	if (ret == -EBADMSG)
 		printf("oob: some data is uncorrectable\n");
+	if (oob->bitflips)
+		printf("oob: %llu correctable bitflips detected\n", oob->bitflips);
+	else
+		printf("oob: no bitflips detected\n");
 
 	return ret;
 }
@@ -293,6 +296,6 @@ int oob_break(struct oob *oob)
 	if (ret)
 		return ret;
 
-	printf("oob: break: %llu\n", oob->bitflips);
+	printf("oob: %llu bitflips generated\n", oob->bitflips);
 	return 0;
 }
