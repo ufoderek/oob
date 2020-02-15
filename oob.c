@@ -7,51 +7,6 @@
 
 #include "oob.h"
 
-static void test(void)
-{
-	struct bch *bch;
-	uint8_t *data;
-	uint8_t *ecc;
-
-	bch = bch_init();
-	if (!bch)
-		goto has_error;
-
-	data = malloc(bch_data_size(bch));
-	if (!data)
-		goto has_error;
-
-	ecc = malloc(bch_ecc_size(bch));
-	if (!ecc)
-		goto has_error;
-
-	memset(data, 0xFF, bch_data_size(bch));
-
-	bch_set_buf(bch, data, ecc);
-
-	bch_show_info(bch);
-
-	bch_encode(bch);
-	//bch_dump_data(data);
-	//bch_dump_ecc(bch);
-
-	bch_broke_data_rand(bch);
-
-	bch_decode(bch);
-	bch_decode_result(bch);
-	bch_dump_err_loc(bch);
-
-	if (bch->err_cnt > 0)
-		bch_correct_data(bch);
-
-	bch_decode(bch);
-	bch_decode_result(bch);
-	bch_dump_err_loc(bch);
-
-has_error:
-	bch_free(bch);
-}
-
 static int set_default_oob_args(struct oob *oob)
 {
 	oob->cpus = 1;
@@ -125,6 +80,7 @@ static int parse_oob_args(int argc, char *const argv[], struct oob *oob)
 
 int main(int argc, char *const argv[])
 {
+	int ret;
 	struct oob oob = { 0 };
 
 	srand(time(NULL));
@@ -140,20 +96,18 @@ int main(int argc, char *const argv[])
 	oob.bch = bch_init();
 	if (!oob.bch)
 		return -ENOMEM;
-	bch_show_info(oob.bch);
+	//bch_show_info(oob.bch);
 
 	if (oob.mode == CREATE)
-		return oob_create(&oob);
+		ret = oob_create(&oob);
 	else if (oob.mode == VERIFY)
-		return oob_verify(&oob);
+		ret = oob_verify(&oob);
 	else if (oob.mode == REPAIR)
-		return oob_repair(&oob);
+		ret = oob_repair(&oob);
 	else if (oob.mode == BREAK)
-		return oob_break(&oob);
+		ret = oob_break(&oob);
 
 	file_close_all(&oob);
-	//test();
 
-	printf("oob: exit\n");
-	return 0;
+	return ret;
 }

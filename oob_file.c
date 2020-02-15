@@ -12,9 +12,9 @@ int file_prepare(struct file *file, int read_out, int write_back)
 	int read;
 
 	if (read_out && write_back)
-		file->fp = fopen(file->name, "rwb+");
+		file->fp = fopen(file->name, "rb+");
 	else if (write_back)
-		file->fp = fopen(file->name, "wb");
+		file->fp = fopen(file->name, "wbx");
 	else
 		file->fp = fopen(file->name, "rb");
 

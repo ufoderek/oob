@@ -143,7 +143,7 @@ void bch_broke_data_rand(struct bch *bch)
 		//printf("flip: word[%03d][%02d]\n", byte_n, bit_n);
 	}
 
-	//printf("bch: %d bits flipped\n", err_cnt);
+	//printf("bch: %d bits flipped\n", bch->err_cnt);
 }
 
 void bch_correct_data(struct bch *bch)
@@ -155,7 +155,7 @@ void bch_correct_data(struct bch *bch)
 	unsigned int ecc_pos = 8 * data_size;
 	unsigned int *err_loc = bch->err_loc;
 
-	printf("bch: correct bits:\n");
+	//printf("bch: correct bits:\n");
 	for (i = 0; i < bch->err_cnt; i++) {
 		byte_n = err_loc[i] / 8;
 		bit_n = err_loc[i] % 8;
@@ -165,14 +165,18 @@ void bch_correct_data(struct bch *bch)
 		else
 			bch->ecc[byte_n - data_size] ^= 1 << bit_n;
 
+		/*
 		if (i && (!(i % 8)))
 			printf("\n");
 		if (!(i % 8))
 			printf("%2d: ", i / 8 + 1);
 		printf("[%03d][%02d]  ", byte_n, bit_n);
+		*/
 	}
+	/*
 	if (i % 8)
 		printf("\n");
+	*/
 }
 
 void bch_free(struct bch *bch)
