@@ -1,79 +1,67 @@
-/*
- * Generic binary BCH encoding/decoding library
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License version 2 as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- *
- * Copyright © 2011 Parrot S.A.
- *
- * Author: Ivan Djelic <ivan.djelic@parrot.com>
- *
- * Description:
- *
- * This library provides runtime configurable encoding/decoding of binary
- * Bose-Chaudhuri-Hocquenghem (BCH) codes.
-*/
-#ifndef _BCH_H
-#define _BCH_H
+#ifndef _USER_BCH_H_
+#define _USER_BCH_H_
 
-#include <linux/types.h>
+#include <stdint.h>
+#include <linux/bch.h>
 
-/**
- * struct bch_control - BCH control structure
- * @m:          Galois field order
- * @n:          maximum codeword size in bits (= 2^m-1)
- * @t:          error correction capability in bits
- * @ecc_bits:   ecc exact size in bits, i.e. generator polynomial degree (<=m*t)
- * @ecc_bytes:  ecc max size (m*t bits) in bytes
- * @a_pow_tab:  Galois field GF(2^m) exponentiation lookup table
- * @a_log_tab:  Galois field GF(2^m) log lookup table
- * @mod8_tab:   remainder generator polynomial lookup tables
- * @ecc_buf:    ecc parity words buffer
- * @ecc_buf2:   ecc parity words buffer
- * @xi_tab:     GF(2^m) base for solving degree 2 polynomial roots
- * @syn:        syndrome buffer
- * @cache:      log-based polynomial representation buffer
- * @elp:        error locator polynomial
- * @poly_2t:    temporary polynomials of degree 2t
- */
-struct bch_control {
-	unsigned int    m;
-	unsigned int    n;
-	unsigned int    t;
-	unsigned int    ecc_bits;
-	unsigned int    ecc_bytes;
-/* private: */
-	uint16_t       *a_pow_tab;
-	uint16_t       *a_log_tab;
-	uint32_t       *mod8_tab;
-	uint32_t       *ecc_buf;
-	uint32_t       *ecc_buf2;
-	unsigned int   *xi_tab;
-	unsigned int   *syn;
-	int            *cache;
-	struct gf_poly *elp;
-	struct gf_poly *poly_2t[4];
+#define DIV_ROUND_UP(n, d) (((n) + (d) - 1) / (d))
+
+#define CONST_M (CONFIG_BCH_CONST_M)
+#define CONST_T (CONFIG_BCH_CONST_T)
+#define ECC_CAP (CONST_T)
+
+struct bch {
+	struct bch_control *ctrl;
+	uint8_t *data;
+	uint8_t *ecc;
+	int err_cnt;
+	unsigned int err_loc[ECC_CAP];
 };
 
-struct bch_control *init_bch(int m, int t, unsigned int prim_poly);
+static inline void checked_free(void *ptr)
+{
+	if (ptr)
+		free(ptr);
+}
 
-void free_bch(struct bch_control *bch);
+static inline unsigned int bch_ecc_cap(struct bch *bch)
+{
+	return CONST_T;
+}
 
-void encode_bch(struct bch_control *bch, const uint8_t *data,
-		unsigned int len, uint8_t *ecc);
+static inline unsigned int bch_ecc_bits(struct bch *bch)
+{
+	return bch->ctrl->ecc_bits;
+}
 
-int decode_bch(struct bch_control *bch, const uint8_t *data, unsigned int len,
-	       const uint8_t *recv_ecc, const uint8_t *calc_ecc,
-	       const unsigned int *syn, unsigned int *errloc);
+static inline unsigned int bch_ecc_size(struct bch *bch)
+{
+	return bch->ctrl->ecc_bytes;
+}
 
-#endif /* _BCH_H */
+static inline const unsigned int bch_word_bits(struct bch *bch)
+{
+	return ((1 << (CONST_M)) - 1);
+}
+
+static inline const unsigned int bch_data_size(struct bch *bch)
+{
+	return DATA_BYTES;
+}
+
+void bch_dump_data(struct bch *bch);
+void bch_dump_ecc(struct bch *bch);
+void bch_dump_err_loc(struct bch *bch);
+
+void bch_show_info(struct bch *bch);
+void bch_decode_result(struct bch *bch);
+
+struct bch *bch_init(void);
+void bch_set_buf(struct bch *bch, uint8_t *data, uint8_t *ecc);
+void bch_encode(struct bch *bch);
+void bch_decode(struct bch *bch);
+void bch_broke_data_rand(struct bch *bch);
+void bch_correct_data(struct bch *bch);
+void bch_free(struct bch *bch);
+
+#endif /* _USER_BCH_H_ */

@@ -2,51 +2,51 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "libbch.h"
+#include "bch.h"
 
 static void test(void)
 {
-	struct libbch *bch;
+	struct bch *bch;
 	uint8_t *data;
 	uint8_t *ecc;
 
-	bch = libbch_init();
+	bch = bch_init();
 	if (!bch)
 		goto has_error;
 
-	data = malloc(libbch_data_size(bch));
+	data = malloc(bch_data_size(bch));
 	if (!data)
 		goto has_error;
 
-	ecc = malloc(libbch_ecc_size(bch));
+	ecc = malloc(bch_ecc_size(bch));
 	if (!ecc)
 		goto has_error;
 
-	memset(data, 0xFF, libbch_data_size(bch));
+	memset(data, 0xFF, bch_data_size(bch));
 
-	libbch_set_buf(bch, data, ecc);
+	bch_set_buf(bch, data, ecc);
 
-	libbch_show_info(bch);
+	bch_show_info(bch);
 
-	libbch_encode(bch);
-	//libbch_dump_data(data);
-	//libbch_dump_ecc(bch);
+	bch_encode(bch);
+	//bch_dump_data(data);
+	//bch_dump_ecc(bch);
 
-	libbch_broke_data_rand(bch);
+	bch_broke_data_rand(bch);
 
-	libbch_decode(bch);
-	libbch_decode_result(bch);
-	libbch_dump_err_loc(bch);
+	bch_decode(bch);
+	bch_decode_result(bch);
+	bch_dump_err_loc(bch);
 
 	if (bch->err_cnt > 0)
-		libbch_correct_data(bch);
+		bch_correct_data(bch);
 
-	libbch_decode(bch);
-	libbch_decode_result(bch);
-	libbch_dump_err_loc(bch);
+	bch_decode(bch);
+	bch_decode_result(bch);
+	bch_dump_err_loc(bch);
 
 has_error:
-	libbch_free(bch);
+	bch_free(bch);
 }
 
 
