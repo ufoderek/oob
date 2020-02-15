@@ -46,7 +46,7 @@ struct worker_data {
 	int ret;
 };
 
-int file_prepare(struct file *file, int read_out, int write_back);
+int file_prepare(struct file *file, uint64_t unit_size, int read_out, int write_back);
 int file_write(struct file *file);
 int file_close_all(struct oob *oob);
 

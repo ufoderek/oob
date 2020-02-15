@@ -15,42 +15,29 @@ LIBS=-lpthread
 oob$(ECC_CAP): linux_bch/bch.o bch.o oob.o oob_workers.o oob_file.o
 	$(GCC) $(CFLAGS) $(LIBS) $^ -o $@
 
-linux_bch/bch.o: linux_bch/bch.c
-	$(GCC) $(CFLAGS) $(DEFS) $(INCS) -c $< -o $@
-
 %.o: %.c
 	$(GCC) $(CFLAGS) $(DEFS) $(INCS) -c $< -o $@
-
-#oob.o: oob.c
-#	$(GCC) $(CFLAGS) $(DEFS) $(INCS) -c $< -o $@
-
-#oob_workers.o: oob_workers.c
-#	$(GCC) $(CFLAGS) $(DEFS) $(INCS) -c $< -o $@
 
 .PHONY: test test8 clean
 test:
 	cp -f ~/bk.jpg ~/test.jpg
 	rm -f ~/test.jpg.oob
 	./oob32 --create -d ~/test.jpg -o ~/test.jpg.oob -j1
-	md5sum ~/test.jpg
 	./oob32 --break -d ~/test.jpg -o ~/test.jpg.oob -j1
-	md5sum ~/test.jpg
 	./oob32 --verify -d ~/test.jpg -o ~/test.jpg.oob -j1
 	./oob32 --repair -d ~/test.jpg -o ~/test.jpg.oob -j1
-	md5sum ~/test.jpg
 	./oob32 --verify -d ~/test.jpg -o ~/test.jpg.oob -j1
+	md5sum ~/bk.jpg ~/test.jpg
 
 test8:
 	cp -f ~/bk.jpg ~/test.jpg
 	rm -f ~/test.jpg.oob
 	./oob32 --create -d ~/test.jpg -o ~/test.jpg.oob -j8
-	md5sum ~/test.jpg
 	./oob32 --break -d ~/test.jpg -o ~/test.jpg.oob -j8
-	md5sum ~/test.jpg
 	./oob32 --verify -d ~/test.jpg -o ~/test.jpg.oob -j8
 	./oob32 --repair -d ~/test.jpg -o ~/test.jpg.oob -j8
-	md5sum ~/test.jpg
 	./oob32 --verify -d ~/test.jpg -o ~/test.jpg.oob -j8
+	md5sum ~/bk.jpg ~/test.jpg
 
 clean:
 	rm -f linux_bch/bch.o bch.o oob.o oob32

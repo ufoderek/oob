@@ -131,7 +131,7 @@ void bch_broke_data_rand(struct bch *bch)
 	bch->err_cnt = rand() % (bch_ecc_cap(bch) + 1);
 
 	for (i = 0; i < bch->err_cnt; i++) {
-		err_loc = rand() % (total_bits + 1);
+		err_loc = rand() % total_bits;
 		byte_n = err_loc / 8;
 		bit_n = err_loc % 8;
 

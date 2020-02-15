@@ -44,7 +44,10 @@ void *thread_oob_verify(void *arg)
 	for (i = 0; i < wd->sect_cnt; i++) {
 		bch_set_buf(bch, wd->partial_data, wd->partial_oob);
 		bch_decode(bch);
-		wd->bitflips += bch->err_cnt;
+		if (bch->err_cnt == -EBADMSG)
+			wd->ret = -EBADMSG;
+		else if (bch->err_cnt > 0)
+			wd->bitflips += bch->err_cnt;
 		wd->partial_data += bch_data_size(bch);
 		wd->partial_oob += bch_ecc_size(bch);
 	}
@@ -68,9 +71,12 @@ void *thread_oob_repair(void *arg)
 	for (i = 0; i < wd->sect_cnt; i++) {
 		bch_set_buf(bch, wd->partial_data, wd->partial_oob);
 		bch_decode(bch);
-		wd->bitflips += bch->err_cnt;
-		if (bch->err_cnt > 0)
+		if (bch->err_cnt == -EBADMSG)
+			wd->ret = -EBADMSG;
+		else if (bch->err_cnt > 0) {
+			wd->bitflips += bch->err_cnt;
 			bch_correct_data(bch);
+		}
 		wd->partial_data += bch_data_size(bch);
 		wd->partial_oob += bch_ecc_size(bch);
 	}
@@ -164,12 +170,12 @@ int create_pthreads(struct oob *oob, void *(wk_thread(void *wd)))
 	for (i = 0; i < oob->cpus; i++)
 		pthread_join(th[i], NULL);
 
-	/* Return if any thread has error */
-	for (i = 0; i < oob->cpus; i++) {
+	for (i = 0; i < oob->cpus; i++)
 		oob->bitflips += wd[i].bitflips;
+
+	for (i = 0; i < oob->cpus; i++)
 		if (wd[i].ret)
 			return ret;
-	}
 
 	return 0;
 }
@@ -180,13 +186,13 @@ int oob_create(struct oob *oob)
 	struct bch *bch = oob->bch;
 
 	/* Prepare data file */
-	ret = file_prepare(&oob->file_data, 1, 0);
+	ret = file_prepare(&oob->file_data, bch_data_size(bch), 1, 0);
 	if (ret)
 		return ret;
 
 	/* Prepare oob file */
 	oob->file_oob.size = calc_all_oob_size(bch, oob->file_data.size);
-	ret = file_prepare(&oob->file_oob, 0, 1);
+	ret = file_prepare(&oob->file_oob, bch_ecc_size(bch), 0, 1);
 	if (ret)
 		return ret;
 
@@ -206,22 +212,23 @@ int oob_verify(struct oob *oob)
 	struct bch *bch = oob->bch;
 
 	/* Prepare data file */
-	ret = file_prepare(&oob->file_data, 1, 0);
+	ret = file_prepare(&oob->file_data, bch_data_size(bch), 1, 0);
 	if (ret)
 		return ret;
 
 	/* Prepare oob file */
 	oob->file_oob.size = calc_all_oob_size(bch, oob->file_data.size);
-	ret = file_prepare(&oob->file_oob, 1, 0);
+	ret = file_prepare(&oob->file_oob, bch_ecc_size(bch), 1, 0);
 	if (ret)
 		return ret;
 
 	ret = create_pthreads(oob, thread_oob_verify);
-	if (ret)
-		return ret;
 
-	printf("oob: verify: %llu\n", oob->bitflips);
-	return 0;
+	printf("oob: %llu correctable bitflips\n", oob->bitflips);
+	if (ret == -EBADMSG)
+		printf("oob: some data is uncorrectable\n");
+
+	return ret;
 }
 
 int oob_repair(struct oob *oob)
@@ -230,19 +237,19 @@ int oob_repair(struct oob *oob)
 	struct bch *bch = oob->bch;
 
 	/* Prepare data file */
-	ret = file_prepare(&oob->file_data, 1, 1);
+	ret = file_prepare(&oob->file_data, bch_data_size(bch), 1, 1);
 	if (ret)
 		return ret;
 
 	/* Prepare oob file */
 	oob->file_oob.size = calc_all_oob_size(bch, oob->file_data.size);
-	ret = file_prepare(&oob->file_oob, 1, 1);
+	ret = file_prepare(&oob->file_oob, bch_ecc_size(bch), 1, 1);
 	if (ret)
 		return ret;
 
 	ret = create_pthreads(oob, thread_oob_repair);
-	if (ret)
-		return ret;
+	if (ret == -EBADMSG)
+		printf("oob: some data is uncorrectable\n");
 
 	/* Write files */
 	ret = file_write(&oob->file_data);
@@ -253,7 +260,7 @@ int oob_repair(struct oob *oob)
 	if (ret)
 		return ret;
 
-	printf("oob: repair: %llu\n", oob->bitflips);
+	printf("oob: %llu bitflips repaired\n", oob->bitflips);
 	return 0;
 }
 
@@ -263,13 +270,13 @@ int oob_break(struct oob *oob)
 	struct bch *bch = oob->bch;
 
 	/* Prepare data file */
-	ret = file_prepare(&oob->file_data, 1, 1);
+	ret = file_prepare(&oob->file_data, bch_data_size(bch), 1, 1);
 	if (ret)
 		return ret;
 
 	/* Prepare oob file */
 	oob->file_oob.size = calc_all_oob_size(bch, oob->file_data.size);
-	ret = file_prepare(&oob->file_oob, 1, 1);
+	ret = file_prepare(&oob->file_oob, bch_ecc_size(bch), 1, 1);
 	if (ret)
 		return ret;
 

@@ -7,9 +7,10 @@
 
 #include "oob.h"
 
-int file_prepare(struct file *file, int read_out, int write_back)
+int file_prepare(struct file *file, uint64_t unit_size, int read_out, int write_back)
 {
 	int read;
+	uint64_t remain;
 
 	if (read_out && write_back)
 		file->fp = fopen(file->name, "rb+");
@@ -32,11 +33,17 @@ int file_prepare(struct file *file, int read_out, int write_back)
 		return errno;
 	}
 
-	file->buf = malloc(file->size);
+	remain = file->size % unit_size;
+	if (remain)
+		remain = unit_size - remain;
+
+	file->buf = malloc(file->size + remain);
 	if (!file->buf) {
 		fprintf(stderr, "oob: insufficient memory\n");
 		return errno;
 	}
+	memset(file->buf + file->size, 0, remain);
+	memset(file->buf, 0, file->size + remain);
 
 	if (read_out) {
 		lseek(fileno(file->fp), 0, SEEK_SET);
