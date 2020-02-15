@@ -11,17 +11,20 @@ DEFS=$(BCH_CONST_PARAMS)
 INC_COMPAT=-Ilinux_bch/include
 INCS=$(INC_COMPAT)
 
-oob$(ECC_CAP): linux_bch/bch.o bch.o oob.o
+oob$(ECC_CAP): linux_bch/bch.o bch.o oob.o oob_workers.o oob_file.o
 	$(GCC) $(CFLAGS) $^ -o $@
 
 linux_bch/bch.o: linux_bch/bch.c
 	$(GCC) $(CFLAGS) $(DEFS) $(INCS) -c $< -o $@
 
-bch.o: bch.c
+%.o: %.c
 	$(GCC) $(CFLAGS) $(DEFS) $(INCS) -c $< -o $@
 
-oob.o: oob.c
-	$(GCC) $(CFLAGS) $(DEFS) $(INCS) -c $< -o $@
+#oob.o: oob.c
+#	$(GCC) $(CFLAGS) $(DEFS) $(INCS) -c $< -o $@
+
+#oob_workers.o: oob_workers.c
+#	$(GCC) $(CFLAGS) $(DEFS) $(INCS) -c $< -o $@
 
 .PHONY: clean
 clean:

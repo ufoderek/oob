@@ -4,37 +4,8 @@
 #include <time.h>
 #include <errno.h>
 #include <getopt.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include "bch.h"
 
-enum oob_mode {
-	CREATE,
-	VERIFY,
-	REPAIR,
-};
-
-struct oob_data {
-	enum oob_mode mode;
-
-	char *data_name;
-	char *oob_name;
-	char *rdata_name;
-	char *roob_name;
-
-	FILE *fp_data;
-	FILE *fp_oob;
-	FILE *fp_rdata;
-	FILE *fp_roob;
-
-	uint64_t data_size;
-	uint64_t oob_size;
-
-	uint8_t *data;
-	uint8_t *oob;
-	uint8_t *rdata;
-	uint8_t *roob;
-};
+#include "oob.h"
 
 static void test(void)
 {
@@ -115,16 +86,16 @@ static int parse_oob_args(int argc, char * const argv[], struct oob_data *oob)
 			oob->mode = REPAIR;
 			//printf("oob: repair\n");
 		} else if (c == 'd') {
-			oob->data_name = optarg;
+			oob->file_data.name = optarg;
 			//printf("oob: data file: %s\n", oob->data_name);
 		} else if (c == 'o') {
-			oob->oob_name = optarg;
+			oob->file_oob.name = optarg;
 			//printf("oob: oob file: %s\n", oob->oob_name);
 		} else if (c == 'D') {
-			oob->rdata_name = optarg;
+			oob->file_data_r.name = optarg;
 			//printf("oob: fixed data file: %s\n", oob->rdata_name);
 		} else if (c == 'O') {
-			oob->roob_name = optarg;
+			oob->file_oob_r.name = optarg;
 			//printf("oob: fixed oob file: %s\n", oob->roob_name);
 		} else if (c == 'V') {
 			printf("oob: version\n");
@@ -137,60 +108,6 @@ static int parse_oob_args(int argc, char * const argv[], struct oob_data *oob)
 	}
 
 	return parsed;
-}
-
-static int prepare_orig_files(struct oob_data *oob, int write_oob)
-{
-	oob->fp_data = fopen(oob->data_name, "rb");
-	if (!oob->fp_data) {
-		fprintf(stderr, "oob: error open %s\n", oob->data_name);
-		return -errno;
-	}
-
-	if (write_oob)
-		oob->fp_oob = fopen(oob->oob_name, "wb");
-	else
-		oob->fp_oob = fopen(oob->oob_name, "rb");
-
-	if (!oob->fp_oob) {
-		fprintf(stderr, "oob: error open %s\n", oob->oob_name);
-		return -errno;
-	}
-
-	oob->data_size = (uint64_t)lseek(fileno(oob->fp_data), 0, SEEK_END);
-	oob->oob_size = (uint64_t)lseek(fileno(oob->fp_oob), 0, SEEK_END);
-
-	return 0;
-}
-
-static int prepare_repaired_files(struct oob_data *oob)
-{
-	oob->fp_rdata = fopen(oob->rdata_name, "wb");
-	if (!oob->fp_rdata) {
-		fprintf(stderr, "oob: error open %s\n", oob->rdata_name);
-		return -errno;
-	}
-
-	oob->fp_roob = fopen(oob->roob_name, "wb");
-	if (!oob->fp_roob) {
-		fprintf(stderr, "oob: error open %s\n", oob->roob_name);
-		return -errno;
-	}
-
-	return 0;
-}
-
-int oob_create(struct oob_data *oob)
-{
-	int ret;
-
-	ret = prepare_orig_files(oob, 1);
-	if (ret)
-		return ret;
-
-	ret = prepare_repaired_files(oob);
-	if (ret)
-		return ret;
 }
 
 int main(int argc, char * const argv[])
@@ -211,7 +128,8 @@ int main(int argc, char * const argv[])
 	} else if (oob.mode == REPAIR) {
 	}
 
-	test();
+	file_close_all(&oob);
+	//test();
 
 	return 0;
 }
