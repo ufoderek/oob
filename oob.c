@@ -154,5 +154,6 @@ int main(int argc, char *const argv[])
 	file_close_all(&oob);
 	//test();
 
+	printf("oob: exit\n");
 	return 0;
 }

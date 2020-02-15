@@ -29,13 +29,15 @@ linux_bch/bch.o: linux_bch/bch.c
 
 .PHONY: test test8 clean
 test:
+	cp -f ~/bk.jpg ~/test.jpg
 	./oob32 --create -d ~/test.jpg -o ~/test.jpg.oob -j1
 	./oob32 --break -d ~/test.jpg -o ~/test.jpg.oob -j1
 	./oob32 --verify -d ~/test.jpg -o ~/test.jpg.oob -j1
 
 test8:
+	cp -f ~/bk.jpg ~/test.jpg
 	./oob32 --create -d ~/test.jpg -o ~/test.jpg.oob -j8
-	./oob32 --break -d ~/test.jpg -o ~/test.jpg.oob -j1
+	./oob32 --break -d ~/test.jpg -o ~/test.jpg.oob -j8
 	./oob32 --verify -d ~/test.jpg -o ~/test.jpg.oob -j8
 
 clean:

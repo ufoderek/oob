@@ -127,9 +127,10 @@ void bch_broke_data_rand(struct bch *bch)
 	unsigned int data_size = bch_data_size(bch);
 	unsigned int total_bits = data_size * 8 + bch_ecc_bits(bch);
 	unsigned int ecc_pos = 8 * data_size;
-	int err_cnt = rand() % (bch_ecc_cap(bch) + 1);
 
-	for (i = 0; i < err_cnt; i++) {
+	bch->err_cnt = rand() % (bch_ecc_cap(bch) + 1);
+
+	for (i = 0; i < bch->err_cnt; i++) {
 		err_loc = rand() % (total_bits + 1);
 		byte_n = err_loc / 8;
 		bit_n = err_loc % 8;
@@ -142,7 +143,7 @@ void bch_broke_data_rand(struct bch *bch)
 		//printf("flip: word[%03d][%02d]\n", byte_n, bit_n);
 	}
 
-	printf("bch: %d bits flipped\n", err_cnt);
+	//printf("bch: %d bits flipped\n", err_cnt);
 }
 
 void bch_correct_data(struct bch *bch)

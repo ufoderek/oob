@@ -57,6 +57,31 @@ has_error:
 	return NULL;
 }
 
+void *thread_oob_break(void *arg)
+{
+	int i;
+	struct bch *bch;
+	struct worker_data *wd = arg;
+
+	bch = bch_init();
+	if (!bch) {
+		wd->ret = -ENOMEM;
+		goto has_error;
+	}
+
+	for (i = 0; i < wd->sect_cnt; i++) {
+		bch_set_buf(bch, wd->partial_data, wd->partial_oob);
+		bch_broke_data_rand(bch);
+		wd->bitflips += bch->err_cnt;
+		wd->partial_data += bch_data_size(bch);
+		wd->partial_oob += bch_ecc_size(bch);
+	}
+	wd->ret = 0;
+
+has_error:
+	return NULL;
+}
+
 uint64_t calc_sectors(struct bch *bch, uint64_t all_data_size)
 {
 	return (all_data_size + bch_data_size(bch) - 1) / bch_data_size(bch);
@@ -132,13 +157,13 @@ int oob_create(struct oob *oob)
 	struct bch *bch = oob->bch;
 
 	/* Prepare data file */
-	ret = file_prepare(&oob->file_data, 0);
+	ret = file_prepare(&oob->file_data, 1, 0);
 	if (ret)
 		return ret;
 
 	/* Prepare oob file */
 	oob->file_oob.size = calc_all_oob_size(bch, oob->file_data.size);
-	ret = file_prepare(&oob->file_oob, 1);
+	ret = file_prepare(&oob->file_oob, 0, 1);
 	if (ret)
 		return ret;
 
@@ -161,13 +186,13 @@ int oob_verify(struct oob *oob)
 	struct bch *bch = oob->bch;
 
 	/* Prepare data file */
-	ret = file_prepare(&oob->file_data, 0);
+	ret = file_prepare(&oob->file_data, 1, 0);
 	if (ret)
 		return ret;
 
 	/* Prepare oob file */
 	oob->file_oob.size = calc_all_oob_size(bch, oob->file_data.size);
-	ret = file_prepare(&oob->file_oob, 0);
+	ret = file_prepare(&oob->file_oob, 1, 0);
 	if (ret)
 		return ret;
 
@@ -179,7 +204,7 @@ int oob_verify(struct oob *oob)
 		return ret;
 
 	printf("oob: bitflips: %llu\n", oob->bitflips);
-	return oob->bitflips;
+	return 0;
 }
 
 int oob_repair(struct oob *oob)
@@ -189,5 +214,36 @@ int oob_repair(struct oob *oob)
 
 int oob_break(struct oob *oob)
 {
+	int ret;
+	struct bch *bch = oob->bch;
+
+	/* Prepare data file */
+	ret = file_prepare(&oob->file_data, 1, 1);
+	if (ret)
+		return ret;
+
+	/* Prepare oob file */
+	oob->file_oob.size = calc_all_oob_size(bch, oob->file_data.size);
+	ret = file_prepare(&oob->file_oob, 1, 1);
+	if (ret)
+		return ret;
+
+	printf("all_data_size: %llu all_oob_size: %llu\n",
+	       oob->file_data.size, oob->file_oob.size);
+
+	ret = create_pthreads(oob, thread_oob_break);
+	if (ret)
+		return ret;
+
+	/* Write files */
+	ret = file_write(&oob->file_data);
+	if (ret)
+		return ret;
+
+	ret = file_write(&oob->file_oob);
+	if (ret)
+		return ret;
+
+	printf("oob: bitflips: %llu\n", oob->bitflips);
 	return 0;
 }
