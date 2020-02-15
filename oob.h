@@ -13,9 +13,12 @@ enum oob_mode {
 
 struct file {
 	char *name;
+	char *name_new;
 	FILE *fp;
+	FILE *fp_new;
 	uint8_t *buf;
 	uint64_t size;
+	int inplace;
 };
 
 struct oob_header {
@@ -29,13 +32,12 @@ struct oob {
 	struct bch *bch;
 	enum oob_mode mode;
 	struct oob_header header;
+	int inplace;
 	unsigned long cpus;
 	uint64_t bitflips;
 
 	struct file file_data;
 	struct file file_oob;
-	struct file file_data_r;
-	struct file file_oob_r;
 };
 
 struct worker_data {
@@ -46,7 +48,7 @@ struct worker_data {
 	int ret;
 };
 
-int file_prepare(struct file *file, uint64_t unit_size, int read_out, int write_back);
+int file_prepare(struct file *file, uint64_t unit_size, int read_out, int write_back, int inplace);
 int file_write(struct file *file);
 int file_close_all(struct oob *oob);
 

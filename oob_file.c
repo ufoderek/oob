@@ -7,26 +7,38 @@
 
 #include "oob.h"
 
-int file_prepare(struct file *file, uint64_t unit_size, int read_out, int write_back)
+int file_prepare(struct file *file, uint64_t unit_size, int read_out,
+		 int write_back, int inplace)
 {
 	int read;
 	uint64_t remain;
 
-	if (read_out && write_back)
-		file->fp = fopen(file->name, "rb+");
-	else if (write_back)
-		file->fp = fopen(file->name, "wbx");
-	else
-		file->fp = fopen(file->name, "rb");
+	file->inplace = inplace;
+
+	/* open source file */
+	if (inplace && read_out && write_back)
+		file->fp = fopen(file->name, "rb+"); /* read/write src */
+	else if (inplace && write_back)
+		file->fp = fopen(file->name, "wbx"); /* write src */
+	else if (read_out)
+		file->fp = fopen(file->name, "rb"); /* read src */
 
 	if (!file->fp) {
 		fprintf(stderr, "oob: error open %s\n", file->name);
 		return -errno;
 	}
 
-	if (read_out && !file->size) {
-		file->size = (uint64_t)lseek(fileno(file->fp), 0, SEEK_END);
+	/* open new source file */
+	if (!inplace && write_back) {
+		file->fp_new = fopen(file->name_new, "wbx"); /* write new */
+		if (!file->fp_new) {
+			fprintf(stderr, "oob: error open %s\n", file->name_new);
+			return -errno;
+		}
 	}
+
+	if (read_out && !file->size)
+		file->size = (uint64_t)lseek(fileno(file->fp), 0, SEEK_END);
 
 	if (file->size <= 0) {
 		fprintf(stderr, "oob: cannot determine file size %s\n", file->name);
@@ -58,9 +70,20 @@ int file_prepare(struct file *file, uint64_t unit_size, int read_out, int write_
 
 int file_write(struct file *file)
 {
-	lseek(fileno(file->fp), 0, SEEK_SET);
-	if (fwrite(file->buf, file->size, 1, file->fp) != 1) {
-		fprintf(stderr, "oob: error writing file %s\n", file->name);
+	FILE *fp;
+	char *name;
+
+	if (file->inplace) {
+		fp = file->fp;
+		name = file->name;
+	} else {
+		fp = file->fp_new;
+		name = file->name_new;
+	}
+
+	lseek(fileno(fp), 0, SEEK_SET);
+	if (fwrite(file->buf, file->size, 1, fp) != 1) {
+		fprintf(stderr, "oob: error writing file %s\n", name);
 		return errno;
 	}
 	return 0;
@@ -76,6 +99,6 @@ int file_close_all(struct oob *oob)
 {
 	checked_fclose(oob->file_data.fp);
 	checked_fclose(oob->file_oob.fp);
-	checked_fclose(oob->file_data_r.fp);
-	checked_fclose(oob->file_oob_r.fp);
+	checked_fclose(oob->file_data.fp_new);
+	checked_fclose(oob->file_oob.fp_new);
 }

@@ -186,13 +186,13 @@ int oob_create(struct oob *oob)
 	struct bch *bch = oob->bch;
 
 	/* Prepare data file */
-	ret = file_prepare(&oob->file_data, bch_data_size(bch), 1, 0);
+	ret = file_prepare(&oob->file_data, bch_data_size(bch), 1, 0, 1);
 	if (ret)
 		return ret;
 
 	/* Prepare oob file */
 	oob->file_oob.size = calc_all_oob_size(bch, oob->file_data.size);
-	ret = file_prepare(&oob->file_oob, bch_ecc_size(bch), 0, 1);
+	ret = file_prepare(&oob->file_oob, bch_ecc_size(bch), 0, 1, 1);
 	if (ret)
 		return ret;
 
@@ -212,13 +212,13 @@ int oob_verify(struct oob *oob)
 	struct bch *bch = oob->bch;
 
 	/* Prepare data file */
-	ret = file_prepare(&oob->file_data, bch_data_size(bch), 1, 0);
+	ret = file_prepare(&oob->file_data, bch_data_size(bch), 1, 0, 1);
 	if (ret)
 		return ret;
 
 	/* Prepare oob file */
 	oob->file_oob.size = calc_all_oob_size(bch, oob->file_data.size);
-	ret = file_prepare(&oob->file_oob, bch_ecc_size(bch), 1, 0);
+	ret = file_prepare(&oob->file_oob, bch_ecc_size(bch), 1, 0, 1);
 	if (ret)
 		return ret;
 
@@ -240,13 +240,13 @@ int oob_repair(struct oob *oob)
 	struct bch *bch = oob->bch;
 
 	/* Prepare data file */
-	ret = file_prepare(&oob->file_data, bch_data_size(bch), 1, 1);
+	ret = file_prepare(&oob->file_data, bch_data_size(bch), 1, 1, oob->inplace);
 	if (ret)
 		return ret;
 
 	/* Prepare oob file */
 	oob->file_oob.size = calc_all_oob_size(bch, oob->file_data.size);
-	ret = file_prepare(&oob->file_oob, bch_ecc_size(bch), 1, 1);
+	ret = file_prepare(&oob->file_oob, bch_ecc_size(bch), 1, 1, oob->inplace);
 	if (ret)
 		return ret;
 
@@ -273,13 +273,13 @@ int oob_break(struct oob *oob)
 	struct bch *bch = oob->bch;
 
 	/* Prepare data file */
-	ret = file_prepare(&oob->file_data, bch_data_size(bch), 1, 1);
+	ret = file_prepare(&oob->file_data, bch_data_size(bch), 1, 1, oob->inplace);
 	if (ret)
 		return ret;
 
 	/* Prepare oob file */
 	oob->file_oob.size = calc_all_oob_size(bch, oob->file_data.size);
-	ret = file_prepare(&oob->file_oob, bch_ecc_size(bch), 1, 1);
+	ret = file_prepare(&oob->file_oob, bch_ecc_size(bch), 1, 1, oob->inplace);
 	if (ret)
 		return ret;
 

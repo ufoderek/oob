@@ -25,19 +25,20 @@ static int parse_oob_args(int argc, char *const argv[], struct oob *oob)
 		{ "break",		no_argument,		NULL, 'b' },
 		{ "data",		required_argument,	NULL, 'd' },
 		{ "oob",		required_argument,	NULL, 'o' },
-		{ "repaired-data",	required_argument,	NULL, 'D' },
-		{ "repaired-oob",	required_argument,	NULL, 'O' },
+		{ "data-new",		required_argument,	NULL, 'D' },
+		{ "oob-new",		required_argument,	NULL, 'O' },
 		{ "cpus",		required_argument,	NULL, 'j' },
+		{ "inplace",		no_argument,		NULL, 'i' },
 		{ "version",		no_argument,		NULL, 'V' },
 		{ "",			0,			NULL, '\0'}
 	};
 
 	while (1) {
-		c = getopt_long(argc, argv, "cvrbd:o:D:O:j:V", long_options,
+		c = getopt_long(argc, argv, "cvrbd:o:D:O:j:iV", long_options,
 				&opt_index);
 
 		if (c == -1)
-			return parsed;
+			break;
 		else if (c == 'c') {
 			oob->mode = CREATE;
 			//printf("oob: create\n");
@@ -57,14 +58,17 @@ static int parse_oob_args(int argc, char *const argv[], struct oob *oob)
 			oob->file_oob.name = optarg;
 			//printf("oob: oob file: %s\n", oob->oob_name);
 		} else if (c == 'D') {
-			oob->file_data_r.name = optarg;
+			oob->file_data.name_new = optarg;
 			//printf("oob: fixed data file: %s\n", oob->rdata_name);
 		} else if (c == 'O') {
-			oob->file_oob_r.name = optarg;
+			oob->file_oob.name_new = optarg;
 			//printf("oob: fixed oob file: %s\n", oob->roob_name);
 		} else if (c == 'j') {
 			oob->cpus = strtol(optarg, NULL, 10);
 			//printf("oob: cpus: %lu\n", oob->cpus);
+		} else if (c == 'i') {
+			oob->inplace = 1;
+			//printf("oob: inplace\n");
 		} else if (c == 'V') {
 			printf("oob: version\n");
 			break;
@@ -73,6 +77,16 @@ static int parse_oob_args(int argc, char *const argv[], struct oob *oob)
 			return -EINVAL;
 		}
 		parsed++;
+	}
+
+	if (oob->inplace && oob->mode == CREATE) {
+		fprintf(stderr, "oob: not support --inplace with --create\n");
+		return -EINVAL;
+	}
+
+	if (oob->inplace && oob->mode == VERIFY) {
+		fprintf(stderr, "oob: not support --inplace with --verify\n");
+		return -EINVAL;
 	}
 
 	return parsed;
