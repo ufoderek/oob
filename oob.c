@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "libbch.h"
 
 static void test(void)
@@ -29,7 +30,7 @@ static void test(void)
 
 	libbch_encode(bch);
 	//libbch_dump_data(data);
-	libbch_dump_ecc(bch);
+	//libbch_dump_ecc(bch);
 
 	libbch_broke_data_rand(bch);
 
@@ -51,6 +52,7 @@ has_error:
 
 int main(const int argc, const char *argv[])
 {
+	srand(time(NULL));
 	test();
 
 	return 0;
