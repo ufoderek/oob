@@ -7,7 +7,7 @@
 
 #include "oob.h"
 
-int file_prepare(struct file *file, uint64_t size, int write)
+int file_prepare(struct file *file, int write)
 {
 	int read;
 
@@ -21,9 +21,7 @@ int file_prepare(struct file *file, uint64_t size, int write)
 		return -errno;
 	}
 
-	if (size)
-		file->size = size;
-	else {
+	if (!file->size) {
 		file->size = (uint64_t)lseek(fileno(file->fp), 0, SEEK_END);
 		lseek(fileno(file->fp), 0, SEEK_SET);
 	}
@@ -49,9 +47,8 @@ int file_prepare(struct file *file, uint64_t size, int write)
 	return 0;
 }
 
-int file_flush(struct file *file)
+int file_write(struct file *file)
 {
-
 	if (fwrite(file->buf, file->size, 1, file->fp) != 1) {
 		fprintf(stderr, "oob: error writing file %s\n", file->name);
 		return errno;

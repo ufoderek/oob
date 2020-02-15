@@ -2,27 +2,59 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <pthread.h>
 
 #include "oob.h"
 
-void *worker_create(struct worker_data *wd)
+void *thread_oob_create(void *arg)
 {
 	int i;
 	struct bch *bch;
+	struct worker_data *wd = arg;
 
 	bch = bch_init();
-	if (!bch)
-		return 0;
+	if (!bch) {
+		wd->ret = -ENOMEM;
+		goto has_error;
+	}
 
-	for (i = 0;i < wd->sect_cnt; i++)
-	{
+	for (i = 0; i < wd->sect_cnt; i++) {
 		bch_set_buf(bch, wd->partial_data, wd->partial_oob);
 		bch_encode(bch);
 		wd->partial_data += bch_data_size(bch);
 		wd->partial_oob += bch_ecc_size(bch);
 	}
+	wd->ret = 0;
 
-	return 0;
+has_error:
+	return NULL;
+}
+
+void *thread_oob_verify(void *arg)
+{
+	int i;
+	struct bch *bch;
+	struct worker_data *wd = arg;
+
+	bch = bch_init();
+	if (!bch) {
+		wd->ret = -ENOMEM;
+		goto has_error;
+	}
+
+	wd->bitflips = 0;
+
+	for (i = 0; i < wd->sect_cnt; i++) {
+		bch_set_buf(bch, wd->partial_data, wd->partial_oob);
+		bch_decode(bch);
+		wd->bitflips += bch->err_cnt;
+		wd->partial_data += bch_data_size(bch);
+		wd->partial_oob += bch_ecc_size(bch);
+	}
+	wd->ret = 0;
+
+has_error:
+	return NULL;
 }
 
 uint64_t calc_sectors(struct bch *bch, uint64_t all_data_size)
@@ -35,43 +67,127 @@ uint64_t calc_all_oob_size(struct bch *bch, uint64_t all_data_size)
 	return bch_ecc_size(bch) * calc_sectors(bch, all_data_size);
 }
 
-int oob_create(struct oob_data *oob)
+int create_pthreads(struct oob *oob, void *(wk_thread(void *wd)))
 {
 	int ret;
-	struct bch *bch;
-	struct worker_data wd;
-	uint64_t all_data_size;
-	uint64_t all_oob_size;
-	uint64_t sectors;
+	int i;
+	struct bch *bch = oob->bch;
+	pthread_t *th;
+	struct worker_data *wd;
+	uint64_t sectors = calc_sectors(bch, oob->file_data.size);
 
-	bch = bch_init();
-	if (!bch)
+	th = malloc(sizeof(*th) * oob->cpus);
+	if (!th)
 		return -ENOMEM;
 
-	bch_show_info(bch);
+	wd = malloc(sizeof(*wd) * oob->cpus);
+	if (!wd)
+		return -ENOMEM;
 
-	ret = file_prepare(&oob->file_data, 0, 0);
+	/* Prepare worker data */
+	for (i = 0; i < oob->cpus; i++) {
+		wd[i].sect_cnt = sectors / oob->cpus;
+		wd[i].partial_data = oob->file_data.buf +
+				     i * wd[i].sect_cnt * bch_data_size(bch);
+		wd[i].partial_oob = oob->file_oob.buf +
+				    i * wd[i].sect_cnt * bch_ecc_size(bch);
+	}
+	/* Last CPU should do the remaining sectors */
+	wd[oob->cpus - 1].sect_cnt += sectors % oob->cpus;
+
+	/* Debug */
+	/*
+	printf("sectors: %llu\n", sectors);
+	for (i = 0; i < oob->cpus; i++) {
+		printf("thread_%d: sect_cnt: %llu dbuf: %p-%p obuf: %p-%p\n",
+			i,
+			wd[i].sect_cnt,
+			wd[i].partial_data,
+			wd[i].partial_data + wd[i].sect_cnt * bch_data_size(bch),
+			wd[i].partial_oob,
+			wd[i].partial_oob + wd[i].sect_cnt * bch_ecc_size(bch));
+	}
+	*/
+
+	/* Let threads working */
+	for (i = (oob->cpus - 1) ; i >= 0; i--)
+		pthread_create(&th[i], NULL, wk_thread, &wd[i]);
+
+	for (i = 0; i < oob->cpus; i++)
+		pthread_join(th[i], NULL);
+
+	/* Return if any thread has error */
+	for (i = 0; i < oob->cpus; i++) {
+		oob->bitflips += wd[i].bitflips;
+		if (wd[i].ret)
+			return ret;
+	}
+
+	return 0;
+}
+
+int oob_create(struct oob *oob)
+{
+	int ret;
+	struct bch *bch = oob->bch;
+
+	/* Prepare data file */
+	ret = file_prepare(&oob->file_data, 0);
 	if (ret)
 		return ret;
 
-
-	all_data_size = oob->file_data.size;
-	all_oob_size = calc_all_oob_size(bch, all_data_size);
-	sectors = calc_sectors(bch, all_data_size);
+	/* Prepare oob file */
+	oob->file_oob.size = calc_all_oob_size(bch, oob->file_data.size);
+	ret = file_prepare(&oob->file_oob, 1);
+	if (ret)
+		return ret;
 
 	printf("all_data_size: %llu all_oob_size: %llu\n",
-		all_data_size, all_oob_size);
+	       oob->file_data.size, oob->file_oob.size);
 
-	ret = file_prepare(&oob->file_oob, all_oob_size, 1);
+	ret = create_pthreads(oob, thread_oob_create);
 	if (ret)
 		return ret;
 
-	wd.sect_cnt = sectors;
-	wd.partial_data = oob->file_data.buf;
-	wd.partial_oob = oob->file_oob.buf;
-	worker_create(&wd);
-
-	ret = file_flush(&oob->file_oob);
+	/* Write oob file */
+	ret = file_write(&oob->file_oob);
 	if (ret)
 		return ret;
+}
+
+int oob_verify(struct oob *oob)
+{
+	int ret;
+	struct bch *bch = oob->bch;
+
+	/* Prepare data file */
+	ret = file_prepare(&oob->file_data, 0);
+	if (ret)
+		return ret;
+
+	/* Prepare oob file */
+	oob->file_oob.size = calc_all_oob_size(bch, oob->file_data.size);
+	ret = file_prepare(&oob->file_oob, 0);
+	if (ret)
+		return ret;
+
+	printf("all_data_size: %llu all_oob_size: %llu\n",
+	       oob->file_data.size, oob->file_oob.size);
+
+	ret = create_pthreads(oob, thread_oob_verify);
+	if (ret)
+		return ret;
+
+	printf("oob: bitflips: %llu\n", oob->bitflips);
+	return oob->bitflips;
+}
+
+int oob_repair(struct oob *oob)
+{
+	return 0;
+}
+
+int oob_break(struct oob *oob)
+{
+	return 0;
 }

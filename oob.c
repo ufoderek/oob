@@ -52,7 +52,12 @@ has_error:
 	bch_free(bch);
 }
 
-static int parse_oob_args(int argc, char * const argv[], struct oob_data *oob)
+static int set_default_oob_args(struct oob *oob)
+{
+	oob->cpus = 1;
+}
+
+static int parse_oob_args(int argc, char *const argv[], struct oob *oob)
 {
 	int c;
 	int opt_index;
@@ -62,21 +67,23 @@ static int parse_oob_args(int argc, char * const argv[], struct oob_data *oob)
 		{ "create",		no_argument,		NULL, 'c' },
 		{ "verify",		no_argument,		NULL, 'v' },
 		{ "repair",		no_argument,		NULL, 'r' },
+		{ "break",		no_argument,		NULL, 'b' },
 		{ "data",		required_argument,	NULL, 'd' },
 		{ "oob",		required_argument,	NULL, 'o' },
 		{ "repaired-data",	required_argument,	NULL, 'D' },
 		{ "repaired-oob",	required_argument,	NULL, 'O' },
+		{ "cpus",		required_argument,	NULL, 'j' },
 		{ "version",		no_argument,		NULL, 'V' },
 		{ "",			0,			NULL, '\0'}
 	};
 
 	while (1) {
-		c = getopt_long(argc, argv, "cvfd:o:D:O:V", long_options,
+		c = getopt_long(argc, argv, "cvrbd:o:D:O:j:V", long_options,
 				&opt_index);
 
-		if (c == -1) {
+		if (c == -1)
 			return parsed;
-		} else if (c == 'c') {
+		else if (c == 'c') {
 			oob->mode = CREATE;
 			//printf("oob: create\n");
 		} else if (c == 'v') {
@@ -85,6 +92,9 @@ static int parse_oob_args(int argc, char * const argv[], struct oob_data *oob)
 		} else if (c == 'r') {
 			oob->mode = REPAIR;
 			//printf("oob: repair\n");
+		} else if (c == 'b') {
+			oob->mode = BREAK;
+			//printf("oob: break\n");
 		} else if (c == 'd') {
 			oob->file_data.name = optarg;
 			//printf("oob: data file: %s\n", oob->data_name);
@@ -97,6 +107,9 @@ static int parse_oob_args(int argc, char * const argv[], struct oob_data *oob)
 		} else if (c == 'O') {
 			oob->file_oob_r.name = optarg;
 			//printf("oob: fixed oob file: %s\n", oob->roob_name);
+		} else if (c == 'j') {
+			oob->cpus = strtol(optarg, NULL, 10);
+			//printf("oob: cpus: %lu\n", oob->cpus);
 		} else if (c == 'V') {
 			printf("oob: version\n");
 			break;
@@ -110,23 +123,33 @@ static int parse_oob_args(int argc, char * const argv[], struct oob_data *oob)
 	return parsed;
 }
 
-int main(int argc, char * const argv[])
+int main(int argc, char *const argv[])
 {
-	struct oob_data oob = { 0 };
+	struct oob oob = { 0 };
 
 	srand(time(NULL));
 
-	if (parse_oob_args(argc, argv, &oob) <= 0)
-	{
+	/* Init program arguments */
+	set_default_oob_args(&oob);
+	if (parse_oob_args(argc, argv, &oob) <= 0) {
 		fprintf(stderr, "oob: invalid arguments\n");
 		return -EINVAL;
 	}
 
-	if (oob.mode == CREATE) {
+	/* init bch */
+	oob.bch = bch_init();
+	if (!oob.bch)
+		return -ENOMEM;
+	bch_show_info(oob.bch);
+
+	if (oob.mode == CREATE)
 		return oob_create(&oob);
-	} else if (oob.mode == VERIFY) {
-	} else if (oob.mode == REPAIR) {
-	}
+	else if (oob.mode == VERIFY)
+		return oob_verify(&oob);
+	else if (oob.mode == REPAIR)
+		return oob_repair(&oob);
+	else if (oob.mode == BREAK)
+		return oob_break(&oob);
 
 	file_close_all(&oob);
 	//test();

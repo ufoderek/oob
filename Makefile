@@ -10,9 +10,10 @@ DEFS=$(BCH_CONST_PARAMS)
 
 INC_COMPAT=-Ilinux_bch/include
 INCS=$(INC_COMPAT)
+LIBS=-lpthread
 
 oob$(ECC_CAP): linux_bch/bch.o bch.o oob.o oob_workers.o oob_file.o
-	$(GCC) $(CFLAGS) $^ -o $@
+	$(GCC) $(CFLAGS) $(LIBS) $^ -o $@
 
 linux_bch/bch.o: linux_bch/bch.c
 	$(GCC) $(CFLAGS) $(DEFS) $(INCS) -c $< -o $@
@@ -26,6 +27,16 @@ linux_bch/bch.o: linux_bch/bch.c
 #oob_workers.o: oob_workers.c
 #	$(GCC) $(CFLAGS) $(DEFS) $(INCS) -c $< -o $@
 
-.PHONY: clean
+.PHONY: test test8 clean
+test:
+	./oob32 --create -d ~/test.jpg -o ~/test.jpg.oob -j1
+	./oob32 --break -d ~/test.jpg -o ~/test.jpg.oob -j1
+	./oob32 --verify -d ~/test.jpg -o ~/test.jpg.oob -j1
+
+test8:
+	./oob32 --create -d ~/test.jpg -o ~/test.jpg.oob -j8
+	./oob32 --break -d ~/test.jpg -o ~/test.jpg.oob -j1
+	./oob32 --verify -d ~/test.jpg -o ~/test.jpg.oob -j8
+
 clean:
 	rm -f linux_bch/bch.o bch.o oob.o oob32
