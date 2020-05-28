@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include "bch.h"
 
+#define FILE_EXT_STR ".oob"
+
 enum oob_mode {
 	CREATE,
 	VERIFY,
@@ -34,8 +36,6 @@ struct oob {
 
 	struct file fin;
 	struct file fin_oob;
-	struct file fout;
-	struct file fout_oob;
 };
 
 struct worker_data {

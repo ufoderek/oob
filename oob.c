@@ -24,16 +24,13 @@ static int parse_oob_args(int argc, char *const argv[], struct oob *oob)
 		{ "repair",		no_argument,		NULL, 'r' },
 		{ "break",		no_argument,		NULL, 'b' },
 		{ "data",		required_argument,	NULL, 'd' },
-		{ "oob",		required_argument,	NULL, 'o' },
-		{ "repaired-data",	required_argument,	NULL, 'D' },
-		{ "repaired-oob",	required_argument,	NULL, 'O' },
 		{ "cpus",		required_argument,	NULL, 'j' },
 		{ "version",		no_argument,		NULL, 'V' },
 		{ "",			0,			NULL, '\0'}
 	};
 
 	while (1) {
-		c = getopt_long(argc, argv, "cvrbd:o:D:O:j:V", long_options,
+		c = getopt_long(argc, argv, "cvrbd:o:j:V", long_options,
 				&opt_index);
 
 		if (c == -1)
@@ -51,17 +48,17 @@ static int parse_oob_args(int argc, char *const argv[], struct oob *oob)
 			oob->mode = BREAK;
 			//printf("oob: break\n");
 		} else if (c == 'd') {
-			oob->fin.name = optarg;
-			//printf("oob: data file: %s\n", oob->data_name);
-		} else if (c == 'o') {
-			oob->fin_oob.name = optarg;
-			//printf("oob: oob file: %s\n", oob->oob_name);
-		} else if (c == 'D') {
-			oob->fout.name = optarg;
-			//printf("oob: fixed data file: %s\n", oob->rdata_name);
-		} else if (c == 'O') {
-			oob->fout_oob.name = optarg;
-			//printf("oob: fixed oob file: %s\n", oob->roob_name);
+			int len = strlen(optarg);
+			int oob_len = len + strlen(FILE_EXT_STR);
+
+			oob->fin.name = malloc(len);
+			oob->fin_oob.name = malloc(oob_len);
+
+			strcpy(oob->fin.name, optarg);
+			strcpy(oob->fin_oob.name, optarg);
+			strcat(oob->fin_oob.name, FILE_EXT_STR);
+			//printf("oob: data file: %s\n", oob->fin.name);
+			//printf("oob: oob file: %s\n", oob->fin_oob.name);
 		} else if (c == 'j') {
 			oob->cpus = strtol(optarg, NULL, 10);
 			//printf("oob: cpus: %lu\n", oob->cpus);
