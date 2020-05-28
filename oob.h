@@ -10,7 +10,7 @@ enum oob_mode {
 	CREATE,
 	VERIFY,
 	REPAIR,
-	BREAK,
+	DESTROY,
 };
 
 struct file {
@@ -53,6 +53,6 @@ int file_close_all(struct oob *oob);
 int oob_create(struct oob *oob);
 int oob_verify(struct oob *oob);
 int oob_repair(struct oob *oob);
-int oob_break(struct oob *oob);
+int oob_destroy(struct oob *oob);
 
 #endif /* _OOB_H_ */

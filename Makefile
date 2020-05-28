@@ -23,21 +23,21 @@ oob$(ECC_CAP): linux_bch/bch.o bch.o oob.o oob_workers.o oob_file.o
 test: oob$(ECC_CAP)
 	cp -f ./$(TEST_FILE) ./$(TEST_FILE).tmp
 	rm -f ./$(TEST_FILE).tmp.oob
-	./oob32 --create -d ./$(TEST_FILE).tmp -j1
-	./oob32 --break -d ./$(TEST_FILE).tmp -j1
-	./oob32 --verify -d ./$(TEST_FILE).tmp -j1
-	./oob32 --repair -d ./$(TEST_FILE).tmp -j1
-	./oob32 --verify -d ./$(TEST_FILE).tmp -j1
+	./oob32 --create -i ./$(TEST_FILE).tmp -j1
+	./oob32 --destroy -i ./$(TEST_FILE).tmp -j1
+	./oob32 --verify -i ./$(TEST_FILE).tmp -j1
+	./oob32 --repair -i ./$(TEST_FILE).tmp -j1
+	./oob32 --verify -i ./$(TEST_FILE).tmp -j1
 	md5sum ./$(TEST_FILE) ./$(TEST_FILE).tmp
 
 test8: oob$(ECC_CAP)
 	cp -f ./$(TEST_FILE) ./$(TEST_FILE).tmp
 	rm -f ./$(TEST_FILE).tmp.oob
-	./oob32 --create -d ./$(TEST_FILE).tmp -j8
-	./oob32 --break -d ./$(TEST_FILE).tmp -j8
-	./oob32 --verify -d ./$(TEST_FILE).tmp -j8
-	./oob32 --repair -d ./$(TEST_FILE).tmp -j8
-	./oob32 --verify -d ./$(TEST_FILE).tmp -j8
+	./oob32 --create -i ./$(TEST_FILE).tmp -j8
+	./oob32 --destroy -i ./$(TEST_FILE).tmp -j8
+	./oob32 --verify -i ./$(TEST_FILE).tmp -j8
+	./oob32 --repair -i ./$(TEST_FILE).tmp -j8
+	./oob32 --verify -i ./$(TEST_FILE).tmp -j8
 	md5sum ./$(TEST_FILE) ./$(TEST_FILE).tmp
 
 clean:

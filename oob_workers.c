@@ -85,7 +85,7 @@ void *thread_oob_repair(void *arg)
 	return 0;
 }
 
-void *thread_oob_break(void *arg)
+void *thread_oob_destroy(void *arg)
 {
 	int i;
 	struct bch *bch;
@@ -267,7 +267,7 @@ int oob_repair(struct oob *oob)
 	return 0;
 }
 
-int oob_break(struct oob *oob)
+int oob_destroy(struct oob *oob)
 {
 	int ret;
 	struct bch *bch = oob->bch;
@@ -283,7 +283,7 @@ int oob_break(struct oob *oob)
 	if (ret)
 		return ret;
 
-	ret = create_pthreads(oob, thread_oob_break);
+	ret = create_pthreads(oob, thread_oob_destroy);
 	if (ret)
 		return ret;
 

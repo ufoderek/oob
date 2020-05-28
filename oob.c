@@ -22,15 +22,15 @@ static int parse_oob_args(int argc, char *const argv[], struct oob *oob)
 		{ "create",		no_argument,		NULL, 'c' },
 		{ "verify",		no_argument,		NULL, 'v' },
 		{ "repair",		no_argument,		NULL, 'r' },
-		{ "break",		no_argument,		NULL, 'b' },
-		{ "data",		required_argument,	NULL, 'd' },
+		{ "destroy",		no_argument,		NULL, 'd' },
+		{ "input",		required_argument,	NULL, 'i' },
 		{ "cpus",		required_argument,	NULL, 'j' },
 		{ "version",		no_argument,		NULL, 'V' },
 		{ "",			0,			NULL, '\0'}
 	};
 
 	while (1) {
-		c = getopt_long(argc, argv, "cvrbd:o:j:V", long_options,
+		c = getopt_long(argc, argv, "cvrdi:o:j:V", long_options,
 				&opt_index);
 
 		if (c == -1)
@@ -44,10 +44,10 @@ static int parse_oob_args(int argc, char *const argv[], struct oob *oob)
 		} else if (c == 'r') {
 			oob->mode = REPAIR;
 			//printf("oob: repair\n");
-		} else if (c == 'b') {
-			oob->mode = BREAK;
-			//printf("oob: break\n");
 		} else if (c == 'd') {
+			oob->mode = DESTROY;
+			//printf("oob: destroy\n");
+		} else if (c == 'i') {
 			int len = strlen(optarg);
 			int oob_len = len + strlen(FILE_EXT_STR);
 
@@ -101,8 +101,8 @@ int main(int argc, char *const argv[])
 		ret = oob_verify(&oob);
 	else if (oob.mode == REPAIR)
 		ret = oob_repair(&oob);
-	else if (oob.mode == BREAK)
-		ret = oob_break(&oob);
+	else if (oob.mode == DESTROY)
+		ret = oob_destroy(&oob);
 
 	file_close_all(&oob);
 
