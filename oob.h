@@ -4,7 +4,9 @@
 #include <stdio.h>
 #include "bch.h"
 
-#define FILE_EXT_STR ".oob"
+#define MAX_PATH_LENGTH 4096
+#define OOB_FILE_EXT ".oob"
+#define FIXED_FILE_EXT ".fixed"
 
 enum oob_mode {
 	CREATE,
@@ -14,8 +16,10 @@ enum oob_mode {
 };
 
 struct file {
-	char *name;
+	char name[MAX_PATH_LENGTH];
+	char name_wb[MAX_PATH_LENGTH];
 	FILE *fp;
+	FILE *fp_wb;
 	uint8_t *buf;
 	uint64_t size;
 };
@@ -35,8 +39,8 @@ struct oob {
 	uint64_t sectors;
 	uint64_t bitflips;
 
-	struct file fin;
-	struct file fin_oob;
+	struct file file;
+	struct file file_oob;
 };
 
 struct worker_data {

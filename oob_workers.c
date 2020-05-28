@@ -130,9 +130,9 @@ static int create_workers(struct oob *oob, void *(wk_thread(void *wd)))
 		wd[i].bitflips = 0;
 		wd[i].ret = 0;
 		wd[i].sect_cnt = sectors / oob->cpus;
-		wd[i].partial_data = oob->fin.buf +
+		wd[i].partial_data = oob->file.buf +
 				     i * wd[i].sect_cnt * bch_data_size(bch);
-		wd[i].partial_oob = oob->fin_oob.buf +
+		wd[i].partial_oob = oob->file_oob.buf +
 				    i * wd[i].sect_cnt * bch_ecc_size(bch);
 	}
 	/* Last CPU should do the remaining sectors */
@@ -181,15 +181,15 @@ int oob_create(struct oob *oob)
 	uint64_t oob_size;
 
 	/* Prepare data file */
-	ret = file_prepare(&oob->fin, 0, bch_data_size(bch), 1, 0);
+	ret = file_prepare(&oob->file, 0, bch_data_size(bch), 1, 0);
 	if (ret)
 		return ret;
 
-	oob->sectors = calc_sectors(oob->fin.size, bch_data_size(bch));
+	oob->sectors = calc_sectors(oob->file.size, bch_data_size(bch));
 
 	/* Prepare oob file */
 	oob_size = bch_ecc_size(bch) * oob->sectors;
-	ret = file_prepare(&oob->fin_oob, oob_size, bch_ecc_size(bch), 0, 1);
+	ret = file_prepare(&oob->file_oob, oob_size, bch_ecc_size(bch), 0, 1);
 	if (ret)
 		return ret;
 
@@ -198,7 +198,7 @@ int oob_create(struct oob *oob)
 		return ret;
 
 	/* Write oob file */
-	ret = file_write(&oob->fin_oob);
+	ret = file_write(&oob->file_oob);
 	if (ret)
 		return ret;
 }
@@ -210,15 +210,15 @@ int oob_verify(struct oob *oob)
 	uint64_t oob_size;
 
 	/* Prepare data file */
-	ret = file_prepare(&oob->fin, 0, bch_data_size(bch), 1, 0);
+	ret = file_prepare(&oob->file, 0, bch_data_size(bch), 1, 0);
 	if (ret)
 		return ret;
 
-	oob->sectors = calc_sectors(oob->fin.size, bch_data_size(bch));
+	oob->sectors = calc_sectors(oob->file.size, bch_data_size(bch));
 
 	/* Prepare oob file */
 	oob_size = bch_ecc_size(bch) * oob->sectors;
-	ret = file_prepare(&oob->fin_oob, oob_size, bch_ecc_size(bch), 1, 0);
+	ret = file_prepare(&oob->file_oob, oob_size, bch_ecc_size(bch), 1, 0);
 	if (ret)
 		return ret;
 
@@ -241,15 +241,15 @@ int oob_repair(struct oob *oob)
 	uint64_t oob_size;
 
 	/* Prepare data file */
-	ret = file_prepare(&oob->fin, 0, bch_data_size(bch), 1, 1);
+	ret = file_prepare(&oob->file, 0, bch_data_size(bch), 1, 1);
 	if (ret)
 		return ret;
 
-	oob->sectors = calc_sectors(oob->fin.size, bch_data_size(bch));
+	oob->sectors = calc_sectors(oob->file.size, bch_data_size(bch));
 
 	/* Prepare oob file */
 	oob_size = bch_ecc_size(bch) * oob->sectors;
-	ret = file_prepare(&oob->fin_oob, oob_size, bch_ecc_size(bch), 1, 1);
+	ret = file_prepare(&oob->file_oob, oob_size, bch_ecc_size(bch), 1, 1);
 	if (ret)
 		return ret;
 
@@ -258,11 +258,11 @@ int oob_repair(struct oob *oob)
 		printf("oob: some data is uncorrectable\n");
 
 	/* Write files */
-	ret = file_write(&oob->fin);
+	ret = file_write(&oob->file);
 	if (ret)
 		return ret;
 
-	ret = file_write(&oob->fin_oob);
+	ret = file_write(&oob->file_oob);
 	if (ret)
 		return ret;
 
@@ -277,15 +277,15 @@ int oob_destroy(struct oob *oob)
 	uint64_t oob_size;
 
 	/* Prepare data file */
-	ret = file_prepare(&oob->fin, 0, bch_data_size(bch), 1, 1);
+	ret = file_prepare(&oob->file, 0, bch_data_size(bch), 1, 1);
 	if (ret)
 		return ret;
 
-	oob->sectors = calc_sectors(oob->fin.size, bch_data_size(bch));
+	oob->sectors = calc_sectors(oob->file.size, bch_data_size(bch));
 
 	/* Prepare oob file */
 	oob_size = bch_ecc_size(bch) * oob->sectors;
-	ret = file_prepare(&oob->fin_oob, oob_size, bch_ecc_size(bch), 1, 1);
+	ret = file_prepare(&oob->file_oob, oob_size, bch_ecc_size(bch), 1, 1);
 	if (ret)
 		return ret;
 
@@ -294,11 +294,11 @@ int oob_destroy(struct oob *oob)
 		return ret;
 
 	/* Write files */
-	ret = file_write(&oob->fin);
+	ret = file_write(&oob->file);
 	if (ret)
 		return ret;
 
-	ret = file_write(&oob->fin_oob);
+	ret = file_write(&oob->file_oob);
 	if (ret)
 		return ret;
 

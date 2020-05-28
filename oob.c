@@ -48,17 +48,19 @@ static int parse_oob_args(int argc, char *const argv[], struct oob *oob)
 			oob->mode = DESTROY;
 			//printf("oob: destroy\n");
 		} else if (c == 'i') {
-			int len = strlen(optarg);
-			int oob_len = len + strlen(FILE_EXT_STR);
+			strncpy(oob->file.name, optarg, sizeof(oob->file.name));
+			strncpy(oob->file_oob.name, optarg, sizeof(oob->file_oob.name));
+			strncat(oob->file_oob.name, OOB_FILE_EXT, sizeof(oob->file_oob.name));
 
-			oob->fin.name = malloc(len);
-			oob->fin_oob.name = malloc(oob_len);
+			strncpy(oob->file.name_wb, oob->file.name, sizeof(oob->file.name));
+			strncat(oob->file.name_wb, FIXED_FILE_EXT, sizeof(oob->file.name));
+			strncpy(oob->file_oob.name_wb, oob->file.name_wb, sizeof(oob->file_oob.name));
+			strncat(oob->file_oob.name_wb, OOB_FILE_EXT, sizeof(oob->file_oob.name));
 
-			strcpy(oob->fin.name, optarg);
-			strcpy(oob->fin_oob.name, optarg);
-			strcat(oob->fin_oob.name, FILE_EXT_STR);
-			//printf("oob: data file: %s\n", oob->fin.name);
-			//printf("oob: oob file: %s\n", oob->fin_oob.name);
+			printf("oob: input: %s\n", oob->file.name);
+			printf("oob: oob input: %s\n", oob->file_oob.name);
+			printf("oob: fixed: %s\n", oob->file.name_wb);
+			printf("oob: oob fixed: %s\n", oob->file_oob.name_wb);
 		} else if (c == 'j') {
 			oob->cpus = strtol(optarg, NULL, 10);
 			//printf("oob: cpus: %lu\n", oob->cpus);
@@ -93,7 +95,7 @@ int main(int argc, char *const argv[])
 	oob.bch = bch_init();
 	if (!oob.bch)
 		return -ENOMEM;
-	bch_show_info(oob.bch);
+	//bch_show_info(oob.bch);
 
 	if (oob.mode == CREATE)
 		ret = oob_create(&oob);
