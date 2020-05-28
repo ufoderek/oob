@@ -19,8 +19,12 @@ oob$(ECC_CAP): linux_bch/bch.o bch.o oob.o oob_workers.o oob_file.o
 %.o: %.c
 	$(GCC) $(CFLAGS) $(DEFS) $(INCS) -c $< -o $@
 
+$(TEST_FILE):
+	dd if=/dev/urandom of=$(TEST_FILE) bs=1M count=16
+	dd if=/dev/urandom of=$(TEST_FILE) bs=1 count=128 oflag=append conv=notrunc
+
 .PHONY: test test8 clean
-test: oob$(ECC_CAP)
+test: oob$(ECC_CAP) $(TEST_FILE)
 	cp -f ./$(TEST_FILE) ./$(TEST_FILE).tmp
 	rm -f ./$(TEST_FILE).tmp.oob
 	./oob32 --create -i ./$(TEST_FILE).tmp -j1
@@ -30,7 +34,7 @@ test: oob$(ECC_CAP)
 	./oob32 --verify -i ./$(TEST_FILE).tmp -j1
 	md5sum ./$(TEST_FILE) ./$(TEST_FILE).tmp
 
-test8: oob$(ECC_CAP)
+test8: oob$(ECC_CAP) $(TEST_FILE)
 	cp -f ./$(TEST_FILE) ./$(TEST_FILE).tmp
 	rm -f ./$(TEST_FILE).tmp.oob
 	./oob32 --create -i ./$(TEST_FILE).tmp -j8
