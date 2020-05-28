@@ -1,5 +1,6 @@
 GCC=gcc
 CFLAGS=-O2 -march=native
+TEST_FILE=test_file
 
 BCH_M=13
 ECC_CAP=32
@@ -19,25 +20,25 @@ oob$(ECC_CAP): linux_bch/bch.o bch.o oob.o oob_workers.o oob_file.o
 	$(GCC) $(CFLAGS) $(DEFS) $(INCS) -c $< -o $@
 
 .PHONY: test test8 clean
-test:
-	cp -f ~/bk.jpg ~/test.jpg
-	rm -f ~/test.jpg.oob
-	./oob32 --create -d ~/test.jpg -o ~/test.jpg.oob -j1
-	./oob32 --break -d ~/test.jpg -o ~/test.jpg.oob -j1
-	./oob32 --verify -d ~/test.jpg -o ~/test.jpg.oob -j1
-	./oob32 --repair -d ~/test.jpg -o ~/test.jpg.oob -j1
-	./oob32 --verify -d ~/test.jpg -o ~/test.jpg.oob -j1
-	md5sum ~/bk.jpg ~/test.jpg
+test: oob$(ECC_CAP)
+	cp -f ./$(TEST_FILE) ./$(TEST_FILE).tmp
+	rm -f ./$(TEST_FILE).tmp.oob
+	./oob32 --create -d ./$(TEST_FILE).tmp -o ./$(TEST_FILE).tmp.oob -j1
+	./oob32 --break -d ./$(TEST_FILE).tmp -o ./$(TEST_FILE).tmp.oob -j1
+	./oob32 --verify -d ./$(TEST_FILE).tmp -o ./$(TEST_FILE).tmp.oob -j1
+	./oob32 --repair -d ./$(TEST_FILE).tmp -o ./$(TEST_FILE).tmp.oob -j1
+	./oob32 --verify -d ./$(TEST_FILE).tmp -o ./$(TEST_FILE).tmp.oob -j1
+	md5sum ./$(TEST_FILE) ./$(TEST_FILE).tmp
 
-test8:
-	cp -f ~/bk.jpg ~/test.jpg
-	rm -f ~/test.jpg.oob
-	./oob32 --create -d ~/test.jpg -o ~/test.jpg.oob -j8
-	./oob32 --break -d ~/test.jpg -o ~/test.jpg.oob -j8
-	./oob32 --verify -d ~/test.jpg -o ~/test.jpg.oob -j8
-	./oob32 --repair -d ~/test.jpg -o ~/test.jpg.oob -j8
-	./oob32 --verify -d ~/test.jpg -o ~/test.jpg.oob -j8
-	md5sum ~/bk.jpg ~/test.jpg
+test8: oob$(ECC_CAP)
+	cp -f ./$(TEST_FILE) ./$(TEST_FILE).tmp
+	rm -f ./$(TEST_FILE).tmp.oob
+	./oob32 --create -d ./$(TEST_FILE).tmp -o ./$(TEST_FILE).tmp.oob -j8
+	./oob32 --break -d ./$(TEST_FILE).tmp -o ./$(TEST_FILE).tmp.oob -j8
+	./oob32 --verify -d ./$(TEST_FILE).tmp -o ./$(TEST_FILE).tmp.oob -j8
+	./oob32 --repair -d ./$(TEST_FILE).tmp -o ./$(TEST_FILE).tmp.oob -j8
+	./oob32 --verify -d ./$(TEST_FILE).tmp -o ./$(TEST_FILE).tmp.oob -j8
+	md5sum ./$(TEST_FILE) ./$(TEST_FILE).tmp
 
 clean:
 	rm -f linux_bch/bch.o bch.o oob.o oob32
