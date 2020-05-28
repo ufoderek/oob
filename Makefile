@@ -19,50 +19,25 @@ oob$(ECC_CAP): linux_bch/bch.o bch.o oob.o oob_workers.o oob_file.o
 	$(GCC) $(CFLAGS) $(DEFS) $(INCS) -c $< -o $@
 
 .PHONY: test test8 clean
-itest:
-	cp -f ~/bk.jpg ~/test.jpg
-	rm -f ~/test.jpg.oob
-	./oob32 --create -d ~/test.jpg -o ~/test.jpg.oob
-	./oob32 --break  -d ~/test.jpg -o ~/test.jpg.oob --inplace
-	./oob32 --verify -d ~/test.jpg -o ~/test.jpg.oob
-	./oob32 --repair -d ~/test.jpg -o ~/test.jpg.oob --inplace
-	./oob32 --verify -d ~/test.jpg -o ~/test.jpg.oob
-	md5sum ~/bk.jpg ~/test.jpg
-
-itest8:
-	cp -f ~/bk.jpg ~/test.jpg
-	rm -f ~/test.jpg.oob
-	./oob32 --create -d ~/test.jpg -o ~/test.jpg.oob
-	./oob32 --break  -d ~/test.jpg -o ~/test.jpg.oob --inplace
-	./oob32 --verify -d ~/test.jpg -o ~/test.jpg.oob
-	./oob32 --repair -d ~/test.jpg -o ~/test.jpg.oob --inplace
-	./oob32 --verify -d ~/test.jpg -o ~/test.jpg.oob
-	md5sum ~/bk.jpg ~/test.jpg
-
 test:
 	cp -f ~/bk.jpg ~/test.jpg
 	rm -f ~/test.jpg.oob
-	rm -f ~/test_new.jpg ~/test_new.jpg.oob
-	rm -f ~/test_new2.jpg ~/test_new2.jpg.oob
-	./oob32 --create -d ~/test.jpg -o ~/test.jpg.oob
-	./oob32 --break  -d ~/test.jpg -o ~/test.jpg.oob -D ~/test_new.jpg -O ~/test_new.jpg.oob
-	./oob32 --verify -d ~/test_new.jpg -o ~/test_new.jpg.oob
-	./oob32 --repair -d ~/test_new.jpg -o ~/test_new.jpg.oob -D ~/test_new2.jpg -O ~/test_new2.jpg.oob
-	./oob32 --verify -d ~/test_new2.jpg -o ~/test_new2.jpg.oob
-	md5sum ~/bk.jpg ~/test_new2.jpg
+	./oob32 --create -d ~/test.jpg -o ~/test.jpg.oob -j1
+	./oob32 --break -d ~/test.jpg -o ~/test.jpg.oob -j1
+	./oob32 --verify -d ~/test.jpg -o ~/test.jpg.oob -j1
+	./oob32 --repair -d ~/test.jpg -o ~/test.jpg.oob -j1
+	./oob32 --verify -d ~/test.jpg -o ~/test.jpg.oob -j1
+	md5sum ~/bk.jpg ~/test.jpg
 
 test8:
 	cp -f ~/bk.jpg ~/test.jpg
 	rm -f ~/test.jpg.oob
-	rm -f ~/test_new.jpg ~/test_new.jpg.oob
-	rm -f ~/test_new2.jpg ~/test_new2.jpg.oob
 	./oob32 --create -d ~/test.jpg -o ~/test.jpg.oob -j8
-	./oob32 --break  -d ~/test.jpg -o ~/test.jpg.oob -D ~/test_new.jpg -O ~/test_new.jpg.oob -j8
-	./oob32 --verify -d ~/test_new.jpg -o ~/test_new.jpg.oob -j8
-	./oob32 --repair -d ~/test_new.jpg -o ~/test_new.jpg.oob -D ~/test_new2.jpg -O ~/test_new2.jpg.oob -j8
-	./oob32 --verify -d ~/test_new2.jpg -o ~/test_new2.jpg.oob -j8
-	md5sum ~/bk.jpg ~/test_new2.jpg
+	./oob32 --break -d ~/test.jpg -o ~/test.jpg.oob -j8
+	./oob32 --verify -d ~/test.jpg -o ~/test.jpg.oob -j8
+	./oob32 --repair -d ~/test.jpg -o ~/test.jpg.oob -j8
+	./oob32 --verify -d ~/test.jpg -o ~/test.jpg.oob -j8
+	md5sum ~/bk.jpg ~/test.jpg
 
 clean:
-	rm -f oob32
-	rm -f linux_bch/bch.o bch.o oob.o oob_workers.o oob_file.o
+	rm -f linux_bch/bch.o bch.o oob.o oob32
