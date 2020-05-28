@@ -41,4 +41,4 @@ test8: oob$(ECC_CAP)
 	md5sum ./$(TEST_FILE) ./$(TEST_FILE).tmp
 
 clean:
-	rm -f linux_bch/bch.o bch.o oob.o oob32
+	rm -f linux_bch/bch.o ./$(TEST_FILE).tmp ./$(TEST_FILE).tmp.oob oob_workers.o oob_file.o bch.o oob.o oob32
