@@ -51,16 +51,16 @@ static int parse_oob_args(int argc, char *const argv[], struct oob *oob)
 			oob->mode = BREAK;
 			//printf("oob: break\n");
 		} else if (c == 'd') {
-			oob->file_data.name = optarg;
+			oob->fin.name = optarg;
 			//printf("oob: data file: %s\n", oob->data_name);
 		} else if (c == 'o') {
-			oob->file_oob.name = optarg;
+			oob->fin_oob.name = optarg;
 			//printf("oob: oob file: %s\n", oob->oob_name);
 		} else if (c == 'D') {
-			oob->file_data_r.name = optarg;
+			oob->fout.name = optarg;
 			//printf("oob: fixed data file: %s\n", oob->rdata_name);
 		} else if (c == 'O') {
-			oob->file_oob_r.name = optarg;
+			oob->fout_oob.name = optarg;
 			//printf("oob: fixed oob file: %s\n", oob->roob_name);
 		} else if (c == 'j') {
 			oob->cpus = strtol(optarg, NULL, 10);
@@ -96,7 +96,7 @@ int main(int argc, char *const argv[])
 	oob.bch = bch_init();
 	if (!oob.bch)
 		return -ENOMEM;
-	//bch_show_info(oob.bch);
+	bch_show_info(oob.bch);
 
 	if (oob.mode == CREATE)
 		ret = oob_create(&oob);

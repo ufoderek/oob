@@ -74,8 +74,8 @@ static void checked_fclose(FILE *fp)
 
 int file_close_all(struct oob *oob)
 {
-	checked_fclose(oob->file_data.fp);
-	checked_fclose(oob->file_oob.fp);
-	checked_fclose(oob->file_data_r.fp);
-	checked_fclose(oob->file_oob_r.fp);
+	checked_fclose(oob->fin.fp);
+	checked_fclose(oob->fin_oob.fp);
+	checked_fclose(oob->fout.fp);
+	checked_fclose(oob->fout_oob.fp);
 }

@@ -32,10 +32,10 @@ struct oob {
 	unsigned long cpus;
 	uint64_t bitflips;
 
-	struct file file_data;
-	struct file file_oob;
-	struct file file_data_r;
-	struct file file_oob_r;
+	struct file fin;
+	struct file fin_oob;
+	struct file fout;
+	struct file fout_oob;
 };
 
 struct worker_data {
