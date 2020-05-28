@@ -6,7 +6,7 @@
 
 #include "oob.h"
 
-static void *thread_oob_create(void *arg)
+static void *worker_oob_create(void *arg)
 {
 	int i;
 	struct bch *bch;
@@ -29,7 +29,7 @@ static void *thread_oob_create(void *arg)
 	return 0;
 }
 
-static void *thread_oob_verify(void *arg)
+static void *worker_oob_verify(void *arg)
 {
 	int i;
 	struct bch *bch;
@@ -56,7 +56,7 @@ static void *thread_oob_verify(void *arg)
 	return 0;
 }
 
-static void *thread_oob_repair(void *arg)
+static void *worker_oob_repair(void *arg)
 {
 	int i;
 	struct bch *bch;
@@ -85,7 +85,7 @@ static void *thread_oob_repair(void *arg)
 	return 0;
 }
 
-static void *thread_oob_destroy(void *arg)
+static void *worker_oob_destroy(void *arg)
 {
 	int i;
 	struct bch *bch;
@@ -109,9 +109,8 @@ static void *thread_oob_destroy(void *arg)
 	return 0;
 }
 
-static int create_pthreads(struct oob *oob, void *(wk_thread(void *wd)))
+static int create_workers(struct oob *oob, void *(wk_thread(void *wd)))
 {
-	int ret;
 	int i;
 	struct bch *bch = oob->bch;
 	pthread_t *th;
@@ -153,47 +152,48 @@ static int create_pthreads(struct oob *oob, void *(wk_thread(void *wd)))
 	}
 	*/
 
-	/* Let threads working */
-	for (i = (oob->cpus - 1) ; i >= 0; i--)
+	/* Wakeup all worker threads */
+	for (i = 0; i < oob->cpus; i++)
 		pthread_create(&th[i], NULL, wk_thread, &wd[i]);
 
-	for (i = 0; i < oob->cpus; i++)
+	for (i = 0; i < oob->cpus; i++) {
 		pthread_join(th[i], NULL);
-
-	for (i = 0; i < oob->cpus; i++)
 		oob->bitflips += wd[i].bitflips;
+	}
 
-	for (i = 0; i < oob->cpus; i++)
+	for (i = 0; i < oob->cpus; i++) {
 		if (wd[i].ret)
-			return ret;
+			return wd[i].ret;
+	}
 
 	return 0;
 }
 
-static uint64_t calc_sectors(struct bch *bch, uint64_t data_size)
+static uint64_t calc_sectors(uint64_t total_size, int sector_size)
 {
-	return (data_size + bch_data_size(bch) - 1) / bch_data_size(bch);
+	return (total_size + sector_size - 1) / sector_size;
 }
 
 int oob_create(struct oob *oob)
 {
 	int ret;
 	struct bch *bch = oob->bch;
+	uint64_t oob_size;
 
 	/* Prepare data file */
-	ret = file_prepare(&oob->fin, bch_data_size(bch), 1, 0);
+	ret = file_prepare(&oob->fin, 0, bch_data_size(bch), 1, 0);
 	if (ret)
 		return ret;
 
-	oob->sectors = calc_sectors(bch, oob->fin.size);
+	oob->sectors = calc_sectors(oob->fin.size, bch_data_size(bch));
 
 	/* Prepare oob file */
-	oob->fin_oob.size = bch_ecc_size(bch) * oob->sectors;
-	ret = file_prepare(&oob->fin_oob, bch_ecc_size(bch), 0, 1);
+	oob_size = bch_ecc_size(bch) * oob->sectors;
+	ret = file_prepare(&oob->fin_oob, oob_size, bch_ecc_size(bch), 0, 1);
 	if (ret)
 		return ret;
 
-	ret = create_pthreads(oob, thread_oob_create);
+	ret = create_workers(oob, worker_oob_create);
 	if (ret)
 		return ret;
 
@@ -207,21 +207,22 @@ int oob_verify(struct oob *oob)
 {
 	int ret;
 	struct bch *bch = oob->bch;
+	uint64_t oob_size;
 
 	/* Prepare data file */
-	ret = file_prepare(&oob->fin, bch_data_size(bch), 1, 0);
+	ret = file_prepare(&oob->fin, 0, bch_data_size(bch), 1, 0);
 	if (ret)
 		return ret;
 
-	oob->sectors = calc_sectors(bch, oob->fin.size);
+	oob->sectors = calc_sectors(oob->fin.size, bch_data_size(bch));
 
 	/* Prepare oob file */
-	oob->fin_oob.size = bch_ecc_size(bch) * oob->sectors;
-	ret = file_prepare(&oob->fin_oob, bch_ecc_size(bch), 1, 0);
+	oob_size = bch_ecc_size(bch) * oob->sectors;
+	ret = file_prepare(&oob->fin_oob, oob_size, bch_ecc_size(bch), 1, 0);
 	if (ret)
 		return ret;
 
-	ret = create_pthreads(oob, thread_oob_verify);
+	ret = create_workers(oob, worker_oob_verify);
 
 	if (ret == -EBADMSG)
 		printf("oob: some data is uncorrectable\n");
@@ -237,21 +238,22 @@ int oob_repair(struct oob *oob)
 {
 	int ret;
 	struct bch *bch = oob->bch;
+	uint64_t oob_size;
 
 	/* Prepare data file */
-	ret = file_prepare(&oob->fin, bch_data_size(bch), 1, 1);
+	ret = file_prepare(&oob->fin, 0, bch_data_size(bch), 1, 1);
 	if (ret)
 		return ret;
 
-	oob->sectors = calc_sectors(bch, oob->fin.size);
+	oob->sectors = calc_sectors(oob->fin.size, bch_data_size(bch));
 
 	/* Prepare oob file */
-	oob->fin_oob.size = bch_ecc_size(bch) * oob->sectors;
-	ret = file_prepare(&oob->fin_oob, bch_ecc_size(bch), 1, 1);
+	oob_size = bch_ecc_size(bch) * oob->sectors;
+	ret = file_prepare(&oob->fin_oob, oob_size, bch_ecc_size(bch), 1, 1);
 	if (ret)
 		return ret;
 
-	ret = create_pthreads(oob, thread_oob_repair);
+	ret = create_workers(oob, worker_oob_repair);
 	if (ret == -EBADMSG)
 		printf("oob: some data is uncorrectable\n");
 
@@ -272,21 +274,22 @@ int oob_destroy(struct oob *oob)
 {
 	int ret;
 	struct bch *bch = oob->bch;
+	uint64_t oob_size;
 
 	/* Prepare data file */
-	ret = file_prepare(&oob->fin, bch_data_size(bch), 1, 1);
+	ret = file_prepare(&oob->fin, 0, bch_data_size(bch), 1, 1);
 	if (ret)
 		return ret;
 
-	oob->sectors = calc_sectors(bch, oob->fin.size);
+	oob->sectors = calc_sectors(oob->fin.size, bch_data_size(bch));
 
 	/* Prepare oob file */
-	oob->fin_oob.size = bch_ecc_size(bch) * oob->sectors;
-	ret = file_prepare(&oob->fin_oob, bch_ecc_size(bch), 1, 1);
+	oob_size = bch_ecc_size(bch) * oob->sectors;
+	ret = file_prepare(&oob->fin_oob, oob_size, bch_ecc_size(bch), 1, 1);
 	if (ret)
 		return ret;
 
-	ret = create_pthreads(oob, thread_oob_destroy);
+	ret = create_workers(oob, worker_oob_destroy);
 	if (ret)
 		return ret;
 

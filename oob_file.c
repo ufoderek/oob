@@ -7,7 +7,7 @@
 
 #include "oob.h"
 
-int file_prepare(struct file *file, uint64_t unit_size, int read_out, int write_back)
+int file_prepare(struct file *file, uint64_t expected_size, uint64_t unit_size, int read_out, int write_back)
 {
 	int read;
 	uint64_t remain;
@@ -24,12 +24,16 @@ int file_prepare(struct file *file, uint64_t unit_size, int read_out, int write_
 		return -errno;
 	}
 
-	if (read_out && !file->size) {
+	if (read_out)
 		file->size = (uint64_t)lseek(fileno(file->fp), 0, SEEK_END);
-	}
+	else
+		file->size = expected_size;
 
 	if (file->size <= 0) {
 		fprintf(stderr, "oob: cannot determine file size %s\n", file->name);
+		return errno;
+	} else if (expected_size && (file->size != expected_size)) {
+		fprintf(stderr, "oob: unexpected file size %s\n", file->name);
 		return errno;
 	}
 
@@ -43,14 +47,14 @@ int file_prepare(struct file *file, uint64_t unit_size, int read_out, int write_
 		return errno;
 	}
 
-	memset(file->buf + file->size, 0, remain);
-
 	if (read_out) {
 		lseek(fileno(file->fp), 0, SEEK_SET);
 		if (fread(file->buf, file->size, 1, file->fp) != 1) {
 			fprintf(stderr, "oob: error reading file %s\n", file->name);
 			return errno;
 		}
+		if (remain)
+			memset(file->buf + file->size, 0, remain);
 	}
 
 	return 0;
