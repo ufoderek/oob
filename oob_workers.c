@@ -6,7 +6,7 @@
 
 #include "oob.h"
 
-void *thread_oob_create(void *arg)
+static void *thread_oob_create(void *arg)
 {
 	int i;
 	struct bch *bch;
@@ -29,7 +29,7 @@ void *thread_oob_create(void *arg)
 	return 0;
 }
 
-void *thread_oob_verify(void *arg)
+static void *thread_oob_verify(void *arg)
 {
 	int i;
 	struct bch *bch;
@@ -56,7 +56,7 @@ void *thread_oob_verify(void *arg)
 	return 0;
 }
 
-void *thread_oob_repair(void *arg)
+static void *thread_oob_repair(void *arg)
 {
 	int i;
 	struct bch *bch;
@@ -85,7 +85,7 @@ void *thread_oob_repair(void *arg)
 	return 0;
 }
 
-void *thread_oob_destroy(void *arg)
+static void *thread_oob_destroy(void *arg)
 {
 	int i;
 	struct bch *bch;
@@ -109,24 +109,14 @@ void *thread_oob_destroy(void *arg)
 	return 0;
 }
 
-uint64_t calc_sectors(struct bch *bch, uint64_t all_data_size)
-{
-	return (all_data_size + bch_data_size(bch) - 1) / bch_data_size(bch);
-}
-
-uint64_t calc_all_oob_size(struct bch *bch, uint64_t all_data_size)
-{
-	return bch_ecc_size(bch) * calc_sectors(bch, all_data_size);
-}
-
-int create_pthreads(struct oob *oob, void *(wk_thread(void *wd)))
+static int create_pthreads(struct oob *oob, void *(wk_thread(void *wd)))
 {
 	int ret;
 	int i;
 	struct bch *bch = oob->bch;
 	pthread_t *th;
 	struct worker_data *wd;
-	uint64_t sectors = calc_sectors(bch, oob->fin.size);
+	uint64_t sectors = oob->sectors;
 
 	th = malloc(sizeof(*th) * oob->cpus);
 	if (!th)
@@ -180,6 +170,11 @@ int create_pthreads(struct oob *oob, void *(wk_thread(void *wd)))
 	return 0;
 }
 
+static uint64_t calc_sectors(struct bch *bch, uint64_t data_size)
+{
+	return (data_size + bch_data_size(bch) - 1) / bch_data_size(bch);
+}
+
 int oob_create(struct oob *oob)
 {
 	int ret;
@@ -190,8 +185,10 @@ int oob_create(struct oob *oob)
 	if (ret)
 		return ret;
 
+	oob->sectors = calc_sectors(bch, oob->fin.size);
+
 	/* Prepare oob file */
-	oob->fin_oob.size = calc_all_oob_size(bch, oob->fin.size);
+	oob->fin_oob.size = bch_ecc_size(bch) * oob->sectors;
 	ret = file_prepare(&oob->fin_oob, bch_ecc_size(bch), 0, 1);
 	if (ret)
 		return ret;
@@ -216,8 +213,10 @@ int oob_verify(struct oob *oob)
 	if (ret)
 		return ret;
 
+	oob->sectors = calc_sectors(bch, oob->fin.size);
+
 	/* Prepare oob file */
-	oob->fin_oob.size = calc_all_oob_size(bch, oob->fin.size);
+	oob->fin_oob.size = bch_ecc_size(bch) * oob->sectors;
 	ret = file_prepare(&oob->fin_oob, bch_ecc_size(bch), 1, 0);
 	if (ret)
 		return ret;
@@ -244,8 +243,10 @@ int oob_repair(struct oob *oob)
 	if (ret)
 		return ret;
 
+	oob->sectors = calc_sectors(bch, oob->fin.size);
+
 	/* Prepare oob file */
-	oob->fin_oob.size = calc_all_oob_size(bch, oob->fin.size);
+	oob->fin_oob.size = bch_ecc_size(bch) * oob->sectors;
 	ret = file_prepare(&oob->fin_oob, bch_ecc_size(bch), 1, 1);
 	if (ret)
 		return ret;
@@ -277,8 +278,10 @@ int oob_destroy(struct oob *oob)
 	if (ret)
 		return ret;
 
+	oob->sectors = calc_sectors(bch, oob->fin.size);
+
 	/* Prepare oob file */
-	oob->fin_oob.size = calc_all_oob_size(bch, oob->fin.size);
+	oob->fin_oob.size = bch_ecc_size(bch) * oob->sectors;
 	ret = file_prepare(&oob->fin_oob, bch_ecc_size(bch), 1, 1);
 	if (ret)
 		return ret;

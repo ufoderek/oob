@@ -42,8 +42,8 @@ int file_prepare(struct file *file, uint64_t unit_size, int read_out, int write_
 		fprintf(stderr, "oob: insufficient memory\n");
 		return errno;
 	}
+
 	memset(file->buf + file->size, 0, remain);
-	memset(file->buf, 0, file->size + remain);
 
 	if (read_out) {
 		lseek(fileno(file->fp), 0, SEEK_SET);

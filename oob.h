@@ -32,6 +32,7 @@ struct oob {
 	enum oob_mode mode;
 	struct oob_header header;
 	unsigned long cpus;
+	uint64_t sectors;
 	uint64_t bitflips;
 
 	struct file fin;
