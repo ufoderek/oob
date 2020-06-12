@@ -5,8 +5,6 @@
 #include "bch.h"
 
 #define MAX_PATH_LENGTH 4096
-#define OOB_FILE_EXT ".oob"
-#define FIXED_FILE_EXT ".fixed"
 
 enum oob_mode {
 	CREATE,
