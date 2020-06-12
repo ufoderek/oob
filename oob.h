@@ -24,17 +24,9 @@ struct file {
 	uint64_t size;
 };
 
-struct oob_header {
-	char prefix[4];		// 4
-	uint8_t ecc_cap;	// 1
-	uint8_t ecc_size;	// 1
-	uint16_t data_size;	// 2
-};
-
 struct oob {
 	struct bch *bch;
 	enum oob_mode mode;
-	struct oob_header header;
 	unsigned long cpus;
 	uint64_t sectors;
 	uint64_t bitflips;
