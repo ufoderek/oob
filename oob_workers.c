@@ -25,6 +25,7 @@ static void *worker_oob_create(void *arg)
 		wd->partial_oob += bch_ecc_size(bch);
 	}
 
+	bch_free(bch);
 	wd->ret = 0;
 	return 0;
 }
@@ -52,6 +53,7 @@ static void *worker_oob_verify(void *arg)
 		wd->partial_oob += bch_ecc_size(bch);
 	}
 
+	bch_free(bch);
 	wd->ret = 0;
 	return 0;
 }
@@ -81,6 +83,7 @@ static void *worker_oob_repair(void *arg)
 		wd->partial_oob += bch_ecc_size(bch);
 	}
 
+	bch_free(bch);
 	wd->ret = 0;
 	return 0;
 }
@@ -105,6 +108,7 @@ static void *worker_oob_destroy(void *arg)
 		wd->partial_oob += bch_ecc_size(bch);
 	}
 
+	bch_free(bch);
 	wd->ret = 0;
 	return 0;
 }

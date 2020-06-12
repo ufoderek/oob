@@ -101,6 +101,8 @@ int main(int argc, char *const argv[])
 	oob.subpage_size = bch_data_size(bch);
 	oob.suboob_size = bch_ecc_size(bch);
 
+	bch_free(bch);
+
 	if (oob.mode == CREATE)
 		ret = oob_create(&oob);
 	else if (oob.mode == VERIFY)
