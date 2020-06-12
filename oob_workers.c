@@ -226,7 +226,7 @@ int oob_verify(struct oob *oob)
 	ret = create_workers(oob, worker_oob_verify);
 
 	if (ret == -EBADMSG)
-		printf("oob: some data is uncorrectable\n");
+		fprintf(stderr, "oob: some data is uncorrectable\n");
 	if (oob->bitflips)
 		printf("oob: %llu correctable bitflips detected\n", oob->bitflips);
 	else
@@ -255,7 +255,7 @@ int oob_repair(struct oob *oob)
 	/* Do the work */
 	ret = create_workers(oob, worker_oob_repair);
 	if (ret == -EBADMSG)
-		printf("oob: some data is uncorrectable\n");
+		fprintf(stderr, "oob: some data is uncorrectable\n");
 
 	/* Write files */
 	ret = file_write_close(&oob->file);

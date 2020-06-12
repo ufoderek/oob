@@ -106,7 +106,7 @@ int main(int argc, char *const argv[])
 			 "%s.fixed", oob.file.name);
 		snprintf(oob.file_oob.name_wb, sizeof(oob.file_oob.name_wb),
 			 "%s.fixed.oob", oob.file.name);
-		printf("oob: '%s' '%s'\n", oob.file.name_wb, oob.file_oob.name_wb);
+		//printf("oob: '%s' '%s'\n", oob.file.name_wb, oob.file_oob.name_wb);
 	} else if (oob.mode == DESTROY) {
 		/* oob file (read only) */
 		snprintf(oob.file_oob.name, sizeof(oob.file.name),
@@ -116,7 +116,7 @@ int main(int argc, char *const argv[])
 			 "%s.bad", oob.file.name);
 		snprintf(oob.file_oob.name_wb, sizeof(oob.file_oob.name_wb),
 			 "%s.bad.oob", oob.file.name);
-		printf("oob: '%s' '%s'\n", oob.file.name_wb, oob.file_oob.name_wb);
+		//printf("oob: '%s' '%s'\n", oob.file.name_wb, oob.file_oob.name_wb);
 	}
 
 	if (oob.mode == CREATE)
