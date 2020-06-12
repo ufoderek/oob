@@ -60,26 +60,20 @@ int file_prepare(struct file *file, uint64_t expected_size, uint64_t unit_size, 
 	return 0;
 }
 
-int file_write(struct file *file)
-{
-	lseek(fileno(file->fp), 0, SEEK_SET);
-	if (fwrite(file->buf, file->size, 1, file->fp) != 1) {
-		fprintf(stderr, "oob: error writing file %s\n", file->name);
-		return errno;
-	}
-	return 0;
-}
-
 static void checked_fclose(FILE *fp)
 {
 	if (fp)
 		fclose(fp);
 }
 
-int file_close_all(struct oob *oob)
+int file_write_close(struct file *file)
 {
-	checked_fclose(oob->file.fp);
-	checked_fclose(oob->file_oob.fp);
-	checked_fclose(oob->file.fp_wb);
-	checked_fclose(oob->file_oob.fp_wb);
+	lseek(fileno(file->fp), 0, SEEK_SET);
+	if (fwrite(file->buf, file->size, 1, file->fp) != 1) {
+		fprintf(stderr, "oob: error writing file %s\n", file->name);
+		checked_fclose(file->fp);
+		return errno;
+	}
+	checked_fclose(file->fp);
+	return 0;
 }

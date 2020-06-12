@@ -81,6 +81,7 @@ int main(int argc, char *const argv[])
 {
 	int ret;
 	struct oob oob = { 0 };
+	struct bch *bch;
 
 	srand(time(NULL));
 
@@ -92,13 +93,13 @@ int main(int argc, char *const argv[])
 	}
 
 	/* init bch */
-	oob.bch = bch_init();
-	if (!oob.bch)
+	bch = bch_init();
+	if (!bch)
 		return -ENOMEM;
-	//bch_show_info(oob.bch);
+	//bch_show_info(bch);
 
-	oob.subpage_size = bch_data_size(oob.bch);
-	oob.suboob_size = bch_ecc_size(oob.bch);
+	oob.subpage_size = bch_data_size(bch);
+	oob.suboob_size = bch_ecc_size(bch);
 
 	if (oob.mode == CREATE)
 		ret = oob_create(&oob);
@@ -108,8 +109,6 @@ int main(int argc, char *const argv[])
 		ret = oob_repair(&oob);
 	else if (oob.mode == DESTROY)
 		ret = oob_destroy(&oob);
-
-	file_close_all(&oob);
 
 	return ret;
 }

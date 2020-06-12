@@ -112,7 +112,6 @@ static void *worker_oob_destroy(void *arg)
 static int create_workers(struct oob *oob, void *(wk_thread(void *wd)))
 {
 	int i;
-	struct bch *bch = oob->bch;
 	pthread_t *th;
 	struct worker_data *wd;
 	uint64_t nr_subpages = oob->nr_subpages;
@@ -131,9 +130,9 @@ static int create_workers(struct oob *oob, void *(wk_thread(void *wd)))
 		wd[i].ret = 0;
 		wd[i].sect_cnt = nr_subpages / oob->cpus;
 		wd[i].partial_data = oob->file.buf +
-				     i * wd[i].sect_cnt * bch_data_size(bch);
+				     i * wd[i].sect_cnt * oob->subpage_size;
 		wd[i].partial_oob = oob->file_oob.buf +
-				    i * wd[i].sect_cnt * bch_ecc_size(bch);
+				    i * wd[i].sect_cnt * oob->suboob_size;
 	}
 	/* Last CPU should do the remaining nr_subpages */
 	wd[oob->cpus - 1].sect_cnt += nr_subpages % oob->cpus;
@@ -146,9 +145,9 @@ static int create_workers(struct oob *oob, void *(wk_thread(void *wd)))
 			i,
 			wd[i].sect_cnt,
 			wd[i].partial_data,
-			wd[i].partial_data + wd[i].sect_cnt * bch_data_size(bch),
+			wd[i].partial_data + wd[i].sect_cnt * oob->subpage_size,
 			wd[i].partial_oob,
-			wd[i].partial_oob + wd[i].sect_cnt * bch_ecc_size(bch));
+			wd[i].partial_oob + wd[i].sect_cnt * oob->suboob_size);
 	}
 	*/
 
@@ -177,7 +176,6 @@ static uint64_t calc_nr_subpages(struct oob *oob)
 int oob_create(struct oob *oob)
 {
 	int ret;
-	struct bch *bch = oob->bch;
 	uint64_t oob_size;
 
 	/* Prepare data file */
@@ -185,20 +183,20 @@ int oob_create(struct oob *oob)
 	if (ret)
 		return ret;
 
-	oob->nr_subpages = calc_nr_subpages(oob);
-
 	/* Prepare oob file */
+	oob->nr_subpages = calc_nr_subpages(oob);
 	oob_size = oob->suboob_size * oob->nr_subpages;
 	ret = file_prepare(&oob->file_oob, oob_size, oob->suboob_size, 0, 1);
 	if (ret)
 		return ret;
 
+	/* Do the work */
 	ret = create_workers(oob, worker_oob_create);
 	if (ret)
 		return ret;
 
 	/* Write oob file */
-	ret = file_write(&oob->file_oob);
+	ret = file_write_close(&oob->file_oob);
 	if (ret)
 		return ret;
 }
@@ -206,7 +204,6 @@ int oob_create(struct oob *oob)
 int oob_verify(struct oob *oob)
 {
 	int ret;
-	struct bch *bch = oob->bch;
 	uint64_t oob_size;
 
 	/* Prepare data file */
@@ -214,14 +211,14 @@ int oob_verify(struct oob *oob)
 	if (ret)
 		return ret;
 
-	oob->nr_subpages = calc_nr_subpages(oob);
-
 	/* Prepare oob file */
+	oob->nr_subpages = calc_nr_subpages(oob);
 	oob_size = oob->suboob_size * oob->nr_subpages;
 	ret = file_prepare(&oob->file_oob, oob_size, oob->suboob_size, 1, 0);
 	if (ret)
 		return ret;
 
+	/* Do the work */
 	ret = create_workers(oob, worker_oob_verify);
 
 	if (ret == -EBADMSG)
@@ -237,7 +234,6 @@ int oob_verify(struct oob *oob)
 int oob_repair(struct oob *oob)
 {
 	int ret;
-	struct bch *bch = oob->bch;
 	uint64_t oob_size;
 
 	/* Prepare data file */
@@ -245,35 +241,29 @@ int oob_repair(struct oob *oob)
 	if (ret)
 		return ret;
 
-	oob->nr_subpages = calc_nr_subpages(oob);
-
 	/* Prepare oob file */
+	oob->nr_subpages = calc_nr_subpages(oob);
 	oob_size = oob->suboob_size * oob->nr_subpages;
 	ret = file_prepare(&oob->file_oob, oob_size, oob->suboob_size, 1, 1);
 	if (ret)
 		return ret;
 
+	/* Do the work */
 	ret = create_workers(oob, worker_oob_repair);
 	if (ret == -EBADMSG)
 		printf("oob: some data is uncorrectable\n");
 
 	/* Write files */
-	ret = file_write(&oob->file);
-	if (ret)
-		return ret;
-
-	ret = file_write(&oob->file_oob);
-	if (ret)
-		return ret;
+	ret = file_write_close(&oob->file);
+	ret = file_write_close(&oob->file_oob);
 
 	printf("oob: %llu bitflips repaired\n", oob->bitflips);
-	return 0;
+	return ret;
 }
 
 int oob_destroy(struct oob *oob)
 {
 	int ret;
-	struct bch *bch = oob->bch;
 	uint64_t oob_size;
 
 	/* Prepare data file */
@@ -281,27 +271,22 @@ int oob_destroy(struct oob *oob)
 	if (ret)
 		return ret;
 
-	oob->nr_subpages = calc_nr_subpages(oob);
-
 	/* Prepare oob file */
+	oob->nr_subpages = calc_nr_subpages(oob);
 	oob_size = oob->suboob_size * oob->nr_subpages;
 	ret = file_prepare(&oob->file_oob, oob_size, oob->suboob_size, 1, 1);
 	if (ret)
 		return ret;
 
+	/* Do the work */
 	ret = create_workers(oob, worker_oob_destroy);
 	if (ret)
 		return ret;
 
 	/* Write files */
-	ret = file_write(&oob->file);
-	if (ret)
-		return ret;
-
-	ret = file_write(&oob->file_oob);
-	if (ret)
-		return ret;
+	ret = file_write_close(&oob->file);
+	ret = file_write_close(&oob->file_oob);
 
 	printf("oob: %llu bitflips generated\n", oob->bitflips);
-	return 0;
+	return ret;
 }

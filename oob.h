@@ -25,7 +25,7 @@ struct file {
 };
 
 struct oob {
-	struct bch *bch;
+	//struct bch *bch;
 	enum oob_mode mode;
 	unsigned long cpus;
 	unsigned int subpage_size;
@@ -46,8 +46,7 @@ struct worker_data {
 };
 
 int file_prepare(struct file *file, uint64_t expected_size, uint64_t unit_size, int read_out, int write_back);
-int file_write(struct file *file);
-int file_close_all(struct oob *oob);
+int file_write_close(struct file *file);
 
 int oob_create(struct oob *oob);
 int oob_verify(struct oob *oob);
