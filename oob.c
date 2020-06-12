@@ -37,24 +37,18 @@ static int parse_oob_args(int argc, char *const argv[], struct oob *oob)
 			return parsed;
 		else if (c == 'c') {
 			oob->mode = CREATE;
-			//printf("oob: create\n");
 		} else if (c == 'v') {
 			oob->mode = VERIFY;
-			//printf("oob: verify\n");
 		} else if (c == 'r') {
 			oob->mode = REPAIR;
-			//printf("oob: repair\n");
 		} else if (c == 'd') {
 			oob->mode = DESTROY;
-			//printf("oob: destroy\n");
 		} else if (c == 'i') {
+			/* source file (read only) */
 			snprintf(oob->file.name, sizeof(oob->file.name),
 				 "%s", optarg);
-			snprintf(oob->file_oob.name, sizeof(oob->file.name),
-				 "%s.oob", optarg);
 		} else if (c == 'j') {
 			oob->cpus = strtol(optarg, NULL, 10);
-			//printf("oob: cpus: %lu\n", oob->cpus);
 		} else if (c == 'V') {
 			printf("oob: version\n");
 			break;
@@ -95,13 +89,29 @@ int main(int argc, char *const argv[])
 	bch_free(bch);
 
 	printf("oob: '%s' '%s'\n", oob.file.name, oob.file_oob.name);
-	if (oob.mode == REPAIR) {
+	if (oob.mode == CREATE) {
+		/* oob file (write only) */
+		snprintf(oob.file_oob.name_wb, sizeof(oob.file_oob.name_wb),
+			 "%s.oob", oob.file.name);
+	} else if (oob.mode == VERIFY) {
+		/* oob file (read only) */
+		snprintf(oob.file_oob.name, sizeof(oob.file.name),
+			 "%s.oob", oob.file.name);
+	} else if (oob.mode == REPAIR) {
+		/* oob file (read only) */
+		snprintf(oob.file_oob.name, sizeof(oob.file.name),
+			 "%s.oob", oob.file.name);
+		/* repaired files (write only) */
 		snprintf(oob.file.name_wb, sizeof(oob.file.name_wb),
 			 "%s.fixed", oob.file.name);
 		snprintf(oob.file_oob.name_wb, sizeof(oob.file_oob.name_wb),
 			 "%s.fixed.oob", oob.file.name);
 		printf("oob: '%s' '%s'\n", oob.file.name_wb, oob.file_oob.name_wb);
 	} else if (oob.mode == DESTROY) {
+		/* oob file (read only) */
+		snprintf(oob.file_oob.name, sizeof(oob.file.name),
+			 "%s.oob", oob.file.name);
+		/* repaired files (write only) */
 		snprintf(oob.file.name_wb, sizeof(oob.file.name_wb),
 			 "%s.bad", oob.file.name);
 		snprintf(oob.file_oob.name_wb, sizeof(oob.file_oob.name_wb),

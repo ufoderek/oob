@@ -12,16 +12,20 @@ int file_prepare(struct file *file, uint64_t expected_size, uint64_t unit_size, 
 	int read;
 	uint64_t remain;
 
-	if (read_out && write_back)
-		file->fp = fopen(file->name, "rb+");
-	else if (write_back)
-		file->fp = fopen(file->name, "wbx");
-	else
+	if (read_out) {
 		file->fp = fopen(file->name, "rb");
+		if (!file->fp) {
+			fprintf(stderr, "oob: error open %s for reading\n", file->name);
+			return -errno;
+		}
+	}
 
-	if (!file->fp) {
-		fprintf(stderr, "oob: error open %s\n", file->name);
-		return -errno;
+	if (write_back) {
+		file->fp_wb = fopen(file->name_wb, "wbx");
+		if (!file->fp_wb) {
+			fprintf(stderr, "oob: error open %s for writing\n", file->name_wb);
+			return -errno;
+		}
 	}
 
 	if (read_out)
@@ -68,12 +72,14 @@ static void checked_fclose(FILE *fp)
 
 int file_write_close(struct file *file)
 {
-	lseek(fileno(file->fp), 0, SEEK_SET);
-	if (fwrite(file->buf, file->size, 1, file->fp) != 1) {
-		fprintf(stderr, "oob: error writing file %s\n", file->name);
-		checked_fclose(file->fp);
+	lseek(fileno(file->fp_wb), 0, SEEK_SET);
+	printf("oob: writing %s\n", file->name_wb);
+	if (fwrite(file->buf, file->size, 1, file->fp_wb) != 1) {
+		fprintf(stderr, "oob: error writing file %s\n", file->name_wb);
+		checked_fclose(file->fp_wb);
 		return errno;
 	}
+	checked_fclose(file->fp_wb);
 	checked_fclose(file->fp);
 	return 0;
 }

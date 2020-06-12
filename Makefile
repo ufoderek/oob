@@ -25,24 +25,22 @@ $(TEST_FILE):
 
 .PHONY: test test8 clean
 test: oob$(ECC_CAP) $(TEST_FILE)
-	cp -f ./$(TEST_FILE) ./$(TEST_FILE).orig
 	rm -f ./$(TEST_FILE).oob
 	./oob32 --create -i ./$(TEST_FILE) -j1
 	./oob32 --destroy -i ./$(TEST_FILE) -j1
-	./oob32 --verify -i ./$(TEST_FILE) -j1
-	./oob32 --repair -i ./$(TEST_FILE) -j1
-	./oob32 --verify -i ./$(TEST_FILE) -j1
-	cmp ./$(TEST_FILE).orig ./$(TEST_FILE) && echo "SUCCESS" || echo "ERROR"
+	./oob32 --verify -i ./$(TEST_FILE).bad -j1
+	./oob32 --repair -i ./$(TEST_FILE).bad -j1
+	./oob32 --verify -i ./$(TEST_FILE).bad.fixed -j1
+	cmp ./$(TEST_FILE) ./$(TEST_FILE).bad.fixed && echo "SUCCESS" || echo "ERROR"
 
 test8: oob$(ECC_CAP) $(TEST_FILE)
-	cp -f ./$(TEST_FILE) ./$(TEST_FILE).orig
 	rm -f ./$(TEST_FILE).oob
 	./oob32 --create -i ./$(TEST_FILE) -j8
 	./oob32 --destroy -i ./$(TEST_FILE) -j8
-	./oob32 --verify -i ./$(TEST_FILE) -j8
-	./oob32 --repair -i ./$(TEST_FILE) -j8
-	./oob32 --verify -i ./$(TEST_FILE) -j8
-	cmp ./$(TEST_FILE).orig ./$(TEST_FILE) && echo "SUCCESS" || echo "ERROR"
+	./oob32 --verify -i ./$(TEST_FILE).bad -j8
+	./oob32 --repair -i ./$(TEST_FILE).bad -j8
+	./oob32 --verify -i ./$(TEST_FILE).bad.fixed -j8
+	cmp ./$(TEST_FILE) ./$(TEST_FILE).bad.fixed && echo "SUCCESS" || echo "ERROR"
 
 clean:
 	rm -f linux_bch/bch.o ./$(TEST_FILE).tmp ./$(TEST_FILE).tmp.oob oob_workers.o oob_file.o bch.o oob.o oob32
