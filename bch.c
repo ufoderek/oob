@@ -181,8 +181,6 @@ void bch_correct_data(struct bch *bch)
 
 void bch_free(struct bch *bch)
 {
-	checked_free(bch->ecc);
-	checked_free(bch->data);
 	if (bch->ctrl)
 		free_bch(bch->ctrl);
 	checked_free(bch);
