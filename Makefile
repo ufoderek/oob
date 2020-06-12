@@ -23,7 +23,7 @@ $(TEST_FILE):
 	dd if=/dev/urandom of=$(TEST_FILE) bs=1M count=16
 	dd if=/dev/urandom of=$(TEST_FILE) bs=1 count=128 oflag=append conv=notrunc
 
-.PHONY: test test8 clean
+.PHONY: test test8 testn clean
 test: oob$(ECC_CAP) $(TEST_FILE)
 	rm -f ./$(TEST_FILE).oob
 	./oob32 --create -i ./$(TEST_FILE) -j1
@@ -41,6 +41,9 @@ test8: oob$(ECC_CAP) $(TEST_FILE)
 	./oob32 --repair -i ./$(TEST_FILE).bad -j8
 	./oob32 --verify -i ./$(TEST_FILE).bad.fixed -j8
 	cmp ./$(TEST_FILE) ./$(TEST_FILE).bad.fixed && echo "SUCCESS" || echo "ERROR"
+
+testn: oob$(ECC_CAP)
+	./loop_test.sh
 
 clean:
 	rm -f linux_bch/bch.o ./$(TEST_FILE).tmp ./$(TEST_FILE).tmp.oob oob_workers.o oob_file.o bch.o oob.o oob32
