@@ -28,7 +28,9 @@ struct oob {
 	struct bch *bch;
 	enum oob_mode mode;
 	unsigned long cpus;
-	uint64_t sectors;
+	unsigned int subpage_size;
+	unsigned int suboob_size;
+	uint64_t nr_subpages;
 	uint64_t bitflips;
 
 	struct file file;

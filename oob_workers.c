@@ -115,7 +115,7 @@ static int create_workers(struct oob *oob, void *(wk_thread(void *wd)))
 	struct bch *bch = oob->bch;
 	pthread_t *th;
 	struct worker_data *wd;
-	uint64_t sectors = oob->sectors;
+	uint64_t nr_subpages = oob->nr_subpages;
 
 	th = malloc(sizeof(*th) * oob->cpus);
 	if (!th)
@@ -129,18 +129,18 @@ static int create_workers(struct oob *oob, void *(wk_thread(void *wd)))
 	for (i = 0; i < oob->cpus; i++) {
 		wd[i].bitflips = 0;
 		wd[i].ret = 0;
-		wd[i].sect_cnt = sectors / oob->cpus;
+		wd[i].sect_cnt = nr_subpages / oob->cpus;
 		wd[i].partial_data = oob->file.buf +
 				     i * wd[i].sect_cnt * bch_data_size(bch);
 		wd[i].partial_oob = oob->file_oob.buf +
 				    i * wd[i].sect_cnt * bch_ecc_size(bch);
 	}
-	/* Last CPU should do the remaining sectors */
-	wd[oob->cpus - 1].sect_cnt += sectors % oob->cpus;
+	/* Last CPU should do the remaining nr_subpages */
+	wd[oob->cpus - 1].sect_cnt += nr_subpages % oob->cpus;
 
 	/* Debug */
 	/*
-	printf("sectors: %llu\n", sectors);
+	printf("nr_subpages: %llu\n", nr_subpages);
 	for (i = 0; i < oob->cpus; i++) {
 		printf("thread_%d: sect_cnt: %llu dbuf: %p-%p obuf: %p-%p\n",
 			i,
@@ -169,9 +169,9 @@ static int create_workers(struct oob *oob, void *(wk_thread(void *wd)))
 	return 0;
 }
 
-static uint64_t calc_sectors(uint64_t total_size, int sector_size)
+static uint64_t calc_nr_subpages(struct oob *oob)
 {
-	return (total_size + sector_size - 1) / sector_size;
+	return (oob->file.size + oob->subpage_size - 1) / oob->subpage_size;
 }
 
 int oob_create(struct oob *oob)
@@ -181,15 +181,15 @@ int oob_create(struct oob *oob)
 	uint64_t oob_size;
 
 	/* Prepare data file */
-	ret = file_prepare(&oob->file, 0, bch_data_size(bch), 1, 0);
+	ret = file_prepare(&oob->file, 0, oob->subpage_size, 1, 0);
 	if (ret)
 		return ret;
 
-	oob->sectors = calc_sectors(oob->file.size, bch_data_size(bch));
+	oob->nr_subpages = calc_nr_subpages(oob);
 
 	/* Prepare oob file */
-	oob_size = bch_ecc_size(bch) * oob->sectors;
-	ret = file_prepare(&oob->file_oob, oob_size, bch_ecc_size(bch), 0, 1);
+	oob_size = oob->suboob_size * oob->nr_subpages;
+	ret = file_prepare(&oob->file_oob, oob_size, oob->suboob_size, 0, 1);
 	if (ret)
 		return ret;
 
@@ -210,15 +210,15 @@ int oob_verify(struct oob *oob)
 	uint64_t oob_size;
 
 	/* Prepare data file */
-	ret = file_prepare(&oob->file, 0, bch_data_size(bch), 1, 0);
+	ret = file_prepare(&oob->file, 0, oob->subpage_size, 1, 0);
 	if (ret)
 		return ret;
 
-	oob->sectors = calc_sectors(oob->file.size, bch_data_size(bch));
+	oob->nr_subpages = calc_nr_subpages(oob);
 
 	/* Prepare oob file */
-	oob_size = bch_ecc_size(bch) * oob->sectors;
-	ret = file_prepare(&oob->file_oob, oob_size, bch_ecc_size(bch), 1, 0);
+	oob_size = oob->suboob_size * oob->nr_subpages;
+	ret = file_prepare(&oob->file_oob, oob_size, oob->suboob_size, 1, 0);
 	if (ret)
 		return ret;
 
@@ -241,15 +241,15 @@ int oob_repair(struct oob *oob)
 	uint64_t oob_size;
 
 	/* Prepare data file */
-	ret = file_prepare(&oob->file, 0, bch_data_size(bch), 1, 1);
+	ret = file_prepare(&oob->file, 0, oob->subpage_size, 1, 1);
 	if (ret)
 		return ret;
 
-	oob->sectors = calc_sectors(oob->file.size, bch_data_size(bch));
+	oob->nr_subpages = calc_nr_subpages(oob);
 
 	/* Prepare oob file */
-	oob_size = bch_ecc_size(bch) * oob->sectors;
-	ret = file_prepare(&oob->file_oob, oob_size, bch_ecc_size(bch), 1, 1);
+	oob_size = oob->suboob_size * oob->nr_subpages;
+	ret = file_prepare(&oob->file_oob, oob_size, oob->suboob_size, 1, 1);
 	if (ret)
 		return ret;
 
@@ -277,15 +277,15 @@ int oob_destroy(struct oob *oob)
 	uint64_t oob_size;
 
 	/* Prepare data file */
-	ret = file_prepare(&oob->file, 0, bch_data_size(bch), 1, 1);
+	ret = file_prepare(&oob->file, 0, oob->subpage_size, 1, 1);
 	if (ret)
 		return ret;
 
-	oob->sectors = calc_sectors(oob->file.size, bch_data_size(bch));
+	oob->nr_subpages = calc_nr_subpages(oob);
 
 	/* Prepare oob file */
-	oob_size = bch_ecc_size(bch) * oob->sectors;
-	ret = file_prepare(&oob->file_oob, oob_size, bch_ecc_size(bch), 1, 1);
+	oob_size = oob->suboob_size * oob->nr_subpages;
+	ret = file_prepare(&oob->file_oob, oob_size, oob->suboob_size, 1, 1);
 	if (ret)
 		return ret;
 

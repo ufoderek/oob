@@ -97,6 +97,9 @@ int main(int argc, char *const argv[])
 		return -ENOMEM;
 	//bch_show_info(oob.bch);
 
+	oob.subpage_size = bch_data_size(oob.bch);
+	oob.suboob_size = bch_ecc_size(oob.bch);
+
 	if (oob.mode == CREATE)
 		ret = oob_create(&oob);
 	else if (oob.mode == VERIFY)
