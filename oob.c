@@ -88,7 +88,7 @@ int main(int argc, char *const argv[])
 
 	bch_free(bch);
 
-	printf("oob: '%s' '%s'\n", oob.file.name, oob.file_oob.name);
+	//printf("oob: '%s' '%s'\n", oob.file.name, oob.file_oob.name);
 	if (oob.mode == CREATE) {
 		/* oob file (write only) */
 		snprintf(oob.file_oob.name_wb, sizeof(oob.file_oob.name_wb),

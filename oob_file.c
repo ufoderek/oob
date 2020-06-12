@@ -73,7 +73,7 @@ static void checked_fclose(FILE *fp)
 int file_write_close(struct file *file)
 {
 	lseek(fileno(file->fp_wb), 0, SEEK_SET);
-	printf("oob: writing %s\n", file->name_wb);
+	//printf("oob: writing %s\n", file->name_wb);
 	if (fwrite(file->buf, file->size, 1, file->fp_wb) != 1) {
 		fprintf(stderr, "oob: error writing file %s\n", file->name_wb);
 		checked_fclose(file->fp_wb);
