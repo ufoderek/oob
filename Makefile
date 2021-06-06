@@ -11,7 +11,7 @@ DEFS=$(LINUX_BCH_CONST_PARAMS)
 INC_COMPAT=-Iinclude_compat
 INCS=-Iinclude $(INC_COMPAT)
 
-oob: oob.o bch.o
+oob: main.o oob.o bch.o
 	$(GCC) $(CFLAGS) $(LIBS) $^ -o $@
 	./oob
 

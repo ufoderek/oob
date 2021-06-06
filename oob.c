@@ -1,31 +1,17 @@
 #include <stdio.h>
 #include <string.h>
-#include <errno.h>
 #include <linux/bch.h>
-#include <linux/kernel.h>
 
-#define BCH_M CONFIG_BCH_CONST_M
-#define ECC_CAP CONFIG_BCH_CONST_T
-#define DATA_BYTES (CONFIG_BCH_CONST_K / 8)
-#define ECC_BYTES DIV_ROUND_UP(BCH_M * ECC_CAP, 8)
+#include "oob.h"
 
-#define pr_debug printf
-
-struct oob
-{
-	uint8_t data[DATA_BYTES];
-	uint8_t ecc[ECC_BYTES];
-	unsigned int errloc[ECC_CAP];
-	int errcnt;
-	struct bch_control *bch;
-};
+#define oob_dbg printf
 
 struct oob *oob_init(void)
 {
 	struct oob *oob = calloc(1, sizeof(*oob));
 
 	if (!oob) {
-		fprintf(stderr, "No sufficient memory...\n");
+		fprintf(stderr, "oob_init: no sufficient memory...\n");
 		return NULL;
 	}
 
@@ -52,9 +38,9 @@ void oob_info(struct oob *oob)
 {
 	struct bch_control *bch = oob->bch;
 
-	pr_debug("m = %u n = %u t = %u\n", bch->m, bch->n, bch->t);
-	pr_debug("ecc_bits = %u ecc_bytes = %u\n", bch->ecc_bits, ECC_BYTES);
-	pr_debug("data_bytes = %u\n", DATA_BYTES);
+	oob_dbg("m = %u n = %u t = %u\n", bch->m, bch->n, bch->t);
+	oob_dbg("ecc_bits = %u ecc_bytes = %u\n", bch->ecc_bits, ECC_BYTES);
+	oob_dbg("data_bytes = %u\n", DATA_BYTES);
 }
 
 void oob_dump_ecc(struct oob *oob)
@@ -89,11 +75,11 @@ void oob_correct(struct oob *oob)
 		int bit_n = errloc[i] % 8;
 		if (errloc[i] < (DATA_BYTES * 8)) {
 			oob->data[byte_n] ^= 1 << bit_n;
-			pr_debug("correct: data[%04d][%d]=0x%02X\n", byte_n, bit_n, oob->data[byte_n]);
+			oob_dbg("correct: data[%04d][%d]=0x%02X\n", byte_n, bit_n, oob->data[byte_n]);
 		} else {
 			byte_n -= DATA_BYTES;
 			oob->ecc[byte_n] ^= 1 << bit_n;
-			pr_debug("correct:  ecc[%04d][%d]=0x%02X\n", byte_n, bit_n, oob->ecc[byte_n]);
+			oob_dbg("correct:  ecc[%04d][%d]=0x%02X\n", byte_n, bit_n, oob->ecc[byte_n]);
 		}
 	}
 }
@@ -104,7 +90,7 @@ void oob_flip_data(struct oob *oob, int i)
 	uint8_t *data = &oob->data[i];
 
 	*data = ~orig_val;
-	pr_debug("flip: data[%04d]: 0x%02X --> 0x%02X\n", i, orig_val, *data);
+	oob_dbg("flip: data[%04d]: 0x%02X --> 0x%02X\n", i, orig_val, *data);
 }
 
 void oob_flip_ecc(struct oob *oob, int i)
@@ -113,36 +99,5 @@ void oob_flip_ecc(struct oob *oob, int i)
 	uint8_t *ecc = &oob->ecc[i];
 
 	*ecc = ~orig_val;
-	pr_debug("flip:  ecc[%04d]: 0x%02X --> 0x%02X\n", i, orig_val, *ecc);
-}
-
-int main(int argc, const char *argv[])
-{
-	struct oob *oob;
-
-	oob = oob_init();
-	oob_reinit(oob);
-	oob_info(oob);
-
-	memset(oob->data, 1, sizeof(oob->data));
-	oob_encode(oob);
-
-	oob_dump_ecc(oob);
-
-	oob_flip_data(oob, 3);
-	oob_flip_ecc(oob, 6);
-
-	oob_decode(oob);
-	if (oob->errcnt == -EBADMSG) {
-		fprintf(stderr, "Decode failed\n");
-		return 0;
-	} else if (oob->errcnt == -EINVAL) {
-		fprintf(stderr, "Decode with invalid parameters\n");
-		return 0;
-	}
-	pr_debug("errcnt = %d\n", oob->errcnt);
-
-	oob_correct(oob);
-	oob_free(oob);
-	return 0;
+	oob_dbg("flip:  ecc[%04d]: 0x%02X --> 0x%02X\n", i, orig_val, *ecc);
 }
