@@ -17,7 +17,7 @@ struct oob_header
 	uint16_t ecc_bytes;
 };
 
-static const struct oob_header oob_header =
+static const struct oob_header OOB_HDR =
 {
 	.magic = "OOB",
 	.ver = 1,
@@ -27,7 +27,45 @@ static const struct oob_header oob_header =
 	.ecc_bytes = ECC_BYTES,
 };
 
-static int file_exist(char *file_name, int status)
+static int verify_oob_header(const struct oob_header *gold, const struct oob_header *target)
+{
+	const struct oob_header *g = gold;
+	const struct oob_header *t = target;
+
+	if (strcmp(g->magic, t->magic)) {
+		fprintf(stderr, "Invalid magic: %s\n", t->magic);
+		return 0;
+	}
+
+	if (g->ver != t->ver) {
+		fprintf(stderr, "Invalid version: %u\n", t->ver);
+		return 0;
+	}
+
+	if (g->bch_m != t->bch_m) {
+		fprintf(stderr, "Invalid BCH_M: %u\n", t->bch_m);
+		return 0;
+	}
+
+	if (g->ecc_cap != t->ecc_cap) {
+		fprintf(stderr, "Invalid ECC capability: %u\n", t->ecc_cap);
+		return 0;
+	}
+
+	if (g->data_bytes != t->data_bytes) {
+		fprintf(stderr, "Invalid data bytes: %u\n", t->data_bytes);
+		return 0;
+	}
+
+	if (g->ecc_bytes != t->ecc_bytes) {
+		fprintf(stderr, "Invalid ECC bytes: %u\n", t->ecc_bytes);
+		return 0;
+	}
+
+	return 1;
+}
+
+static int file_exist(const char *file_name, int status)
 {
 	return !access(file_name, status);
 }
@@ -40,8 +78,6 @@ static int generate_oob(const char *fdata_name, const char *foob_name)
 
 	struct oob *oob;
 
-	//char *fdata_name = "/home/ufoderek/wk/test.tar.xz";
-	//char *foob_name = "/home/ufoderek/wk/test.tar.xz.oob";
 	FILE *fdata;
 	FILE *foob;
 
@@ -70,9 +106,9 @@ static int generate_oob(const char *fdata_name, const char *foob_name)
 	oob = oob_init();
 	oob_info(oob);
 
-	write_bytes = fwrite(&oob_header, 1, sizeof(oob_header), foob);
-	if (write_bytes != sizeof(oob_header)) {
-		fprintf(stderr, "Error writing OOB header to %s\n", foob_name);
+	write_bytes = fwrite(&OOB_HDR, 1, sizeof(OOB_HDR), foob);
+	if (write_bytes != sizeof(OOB_HDR)) {
+		fprintf(stderr, "Error writing OOB header: \n", foob_name);
 		exit(EXIT_FAILURE);
 	}
 
@@ -101,9 +137,82 @@ static int generate_oob(const char *fdata_name, const char *foob_name)
 
 static int verify_oob(const char *fdata_name, const char *foob_name)
 {
+	size_t read_bytes;
+	size_t left_bytes;
+	size_t write_bytes;
+
+	struct oob *oob;
+	struct oob_header oob_hdr;
+
+	FILE *fdata;
+	FILE *foob;
+
+	if (!file_exist(fdata_name, R_OK)) {
+		fprintf(stderr, "%s not exist\n", fdata_name);
+		exit(EXIT_FAILURE);
+	}
+
+	if (!file_exist(foob_name, R_OK)) {
+		fprintf(stderr, "%s exist\n", foob_name);
+		exit(EXIT_FAILURE);
+	}
+
+	fdata = fopen(fdata_name, "rb");
+	if (!fdata) {
+		fprintf(stderr, "Error opening %s: %s\n", fdata_name, strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	foob = fopen(foob_name, "rb");
+	if (!foob) {
+		fprintf(stderr, "Error opening %s: %s\n", foob_name, strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	oob = oob_init();
+	oob_info(oob);
+
+	read_bytes = fread(&oob_hdr, 1, sizeof(oob_hdr), foob);
+	if (read_bytes != sizeof(oob_hdr)) {
+		fprintf(stderr, "Error reading OOB header: %s\n", foob_name);
+		exit(EXIT_FAILURE);
+	}
+
+	if (!verify_oob_header(&OOB_HDR, &oob_hdr)) {
+		fprintf(stderr, "Invalid OOB header: %s\n", foob_name);
+		exit(EXIT_FAILURE);
+	}
+
+	while (!feof(fdata)) {
+
+		oob_reinit(oob);
+
+		read_bytes = fread(oob->data, 1, DATA_BYTES, fdata);
+		left_bytes = DATA_BYTES - read_bytes;
+		if (left_bytes)
+			memset(oob->data + read_bytes, 0, left_bytes);
+
+
+		read_bytes = fread(oob->ecc, 1, ECC_BYTES, foob);
+		left_bytes = ECC_BYTES - read_bytes;
+		if (left_bytes)
+			memset(oob->ecc + read_bytes, 0, left_bytes);
+
+		oob_decode(oob);
+		if (oob->errcnt == -EBADMSG) {
+			fprintf(stderr, "Decode failed\n");
+			exit(EXIT_FAILURE);
+		} else if (oob->errcnt == -EINVAL) {
+			fprintf(stderr, "Decode with invalid parameters\n");
+			exit(EXIT_FAILURE);
+		}
+		//pr_debug("errcnt = %d\n", oob->errcnt);
+	}
+	fclose(fdata);
+	fclose(foob);
+	oob_free(oob);
 	return 0;
 }
-
 static int correct_oob(const char *fdata_name, const char *foob_name)
 {
 	return 0;
