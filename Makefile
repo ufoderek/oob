@@ -13,7 +13,7 @@ INCS=-Iinclude $(INC_COMPAT)
 
 oob: main.o oob.o bch.o
 	$(GCC) $(CFLAGS) $(LIBS) $^ -o $@
-	./oob
+	./oob generate /home/ufoderek/wk/test.tar.xz /home/ufoderek/wk/test.tar.xz.oob
 
 %.o: %.c
 	$(GCC) $(CFLAGS) $(DEFS) $(INCS) -c $< -o $@

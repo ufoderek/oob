@@ -2,6 +2,7 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
+#include <argp.h>
 #include "oob.h"
 
 #define pr_debug printf
@@ -31,7 +32,7 @@ static int file_exist(char *file_name, int status)
 	return !access(file_name, status);
 }
 
-static int generate_oob(void)
+static int generate_oob(const char *fdata_name, const char *foob_name)
 {
 	size_t read_bytes;
 	size_t left_bytes;
@@ -39,8 +40,8 @@ static int generate_oob(void)
 
 	struct oob *oob;
 
-	char *fdata_name = "/home/ufoderek/wk/test.tar.xz";
-	char *foob_name = "/home/ufoderek/wk/test.tar.xz.oob";
+	//char *fdata_name = "/home/ufoderek/wk/test.tar.xz";
+	//char *foob_name = "/home/ufoderek/wk/test.tar.xz.oob";
 	FILE *fdata;
 	FILE *foob;
 
@@ -98,13 +99,38 @@ static int generate_oob(void)
 	return 0;
 }
 
+static int verify_oob(const char *fdata_name, const char *foob_name)
+{
+	return 0;
+}
+
+static int correct_oob(const char *fdata_name, const char *foob_name)
+{
+	return 0;
+}
+
 int main(int argc, const char *argv[])
 {
 	int i;
 	int ret;
 	struct oob *oob;
 
-	ret = generate_oob();
+	if (argc != 4) {
+		fprintf(stderr, "Invalid arguments\n");
+		exit(EXIT_FAILURE);
+	}
+
+	if (!strcmp(argv[1], "generate")) {
+		ret = generate_oob(argv[2], argv[3]);
+	} else if (!strcmp(argv[1], "verify")) {
+		ret = verify_oob(argv[2], argv[3]);
+	} else if (!strcmp(argv[1], "corret")) {
+		ret = correct_oob(argv[2], argv[3]);
+	} else {
+		fprintf(stderr, "Invalid arguments: %s\n", argv[1]);
+		exit(EXIT_FAILURE);
+	}
+
 	return ret;
 
 	/*
