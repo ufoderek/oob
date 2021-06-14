@@ -7,6 +7,7 @@
 
 int main(int argc, const char *argv[])
 {
+	int i;
 	struct oob *oob;
 
 	oob = oob_init();
@@ -16,18 +17,22 @@ int main(int argc, const char *argv[])
 	memset(oob->data, 1, sizeof(oob->data));
 	oob_encode(oob);
 
-	oob_dump_ecc(oob);
+	//oob_dump_ecc(oob);
 
-	oob_flip_data(oob, 3);
-	oob_flip_ecc(oob, 6);
+	for (i=0;i<(128/8);i++) {
+		oob_flip_data(oob, 3+i);
+	}
+
+	oob_flip_data(oob, 0);
+	//oob_flip_ecc(oob, 6);
 
 	oob_decode(oob);
 	if (oob->errcnt == -EBADMSG) {
 		fprintf(stderr, "Decode failed\n");
-		return 0;
+		return -EBADMSG;
 	} else if (oob->errcnt == -EINVAL) {
 		fprintf(stderr, "Decode with invalid parameters\n");
-		return 0;
+		return -EINVAL;
 	}
 	pr_debug("errcnt = %d\n", oob->errcnt);
 
