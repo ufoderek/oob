@@ -258,15 +258,15 @@ static int verify_oob(const char *fdata_name, const char *foob_name, int correct
 		} else if (oob->errcnt == -EINVAL) {
 			fprintf(stderr, "Decode with invalid parameters\n");
 			exit(EXIT_FAILURE);
-		} else if (oob->errcnt > 0) {
-			if (!correct)
-				printf("Section #%d: %d bitflips\n", i, oob->errcnt);
+		} else if (!correct && oob->errcnt > 0) {
+			fprintf(stderr, "Section #%d: %d bitflips\n", i, oob->errcnt);
 		}
 		
 		if (correct) {
-			oob_correct(oob);
-
-			printf("Section #%d: Fix %d bitflips\n", i, oob->errcnt);
+			if (oob->errcnt > 0) {
+				oob_correct(oob);
+				fprintf(stderr, "Section #%d: Fix %d bitflips\n", i, oob->errcnt);
+			}
 
 			write_bytes = fwrite(oob->data, 1, read_bytes, fdata2);
 			if (write_bytes != read_bytes) {
