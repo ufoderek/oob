@@ -4,7 +4,11 @@
 
 #include "oob.h"
 
+#ifdef DEBUG
 #define oob_dbg printf
+#else
+#define oob_dbg(...) do { } while (0)
+#endif
 
 struct oob *oob_init(void)
 {
@@ -54,7 +58,7 @@ void oob_dump_ecc(struct oob *oob)
 	uint8_t *ecc = oob->ecc;
 
 	for (i = 0; i < ECC_BYTES; i+=8) {
-		printf("%u:\t0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X\n",
+		oob_dbg("%u:\t0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X\n",
 			i, ecc[i], ecc[i+1], ecc[i+2], ecc[i+3],
 			ecc[i+4], ecc[i+5], ecc[i+6], ecc[i+7]);
 	}

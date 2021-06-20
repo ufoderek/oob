@@ -5,7 +5,11 @@
 #include <argp.h>
 #include "oob.h"
 
-#define pr_debug printf
+#ifdef DEBUG
+#define oob_dbg printf
+#else
+#define oob_dbg(...) do { } while (0)
+#endif
 
 struct oob_header
 {
