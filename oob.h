@@ -11,8 +11,10 @@
 
 struct oob
 {
-	uint8_t data[DATA_BYTES];
-	uint8_t ecc[ECC_BYTES];
+	uint8_t _data[DATA_BYTES];
+	uint8_t _ecc[ECC_BYTES];
+	uint8_t *data;
+	uint8_t *ecc;
 	unsigned int errloc[ECC_CAP];
 	int errcnt;
 	struct bch_control *bch;
@@ -28,5 +30,7 @@ void oob_decode(struct oob *oob);
 void oob_correct(struct oob *oob);
 void oob_flip_data(struct oob *oob, int i);
 void oob_flip_ecc(struct oob *oob, int i);
+void oob_data(struct oob *oob, int i);
+void oob_ecc(struct oob *oob, int i);
 
 #endif /* __OOB_H__ */

@@ -15,6 +15,8 @@ struct oob *oob_init(void)
 		return NULL;
 	}
 
+	oob->data = oob->_data;
+	oob->ecc = oob->_ecc;
 	oob->bch = bch_init(BCH_M, ECC_CAP, 0, 0);
 	return oob;
 }
@@ -22,7 +24,10 @@ struct oob *oob_init(void)
 void oob_reinit(struct oob *oob)
 {
 	struct bch_control *bch = oob->bch;
+
 	memset(oob, 0, sizeof(*oob));
+	oob->data = oob->_data;
+	oob->ecc = oob->_ecc;
 	oob->bch = bch;
 }
 
@@ -57,12 +62,12 @@ void oob_dump_ecc(struct oob *oob)
 
 void oob_encode(struct oob *oob)
 {
-	bch_encode(oob->bch, oob->data, sizeof(oob->data), oob->ecc);
+	bch_encode(oob->bch, oob->data, sizeof(oob->_data), oob->ecc);
 }
 
 void oob_decode(struct oob *oob)
 {
-	oob->errcnt = bch_decode(oob->bch, oob->data, sizeof(oob->data), oob->ecc, 0, 0, oob->errloc);
+	oob->errcnt = bch_decode(oob->bch, oob->data, sizeof(oob->_data), oob->ecc, 0, 0, oob->errloc);
 }
 
 void oob_correct(struct oob *oob)
@@ -75,11 +80,11 @@ void oob_correct(struct oob *oob)
 		int bit_n = errloc[i] % 8;
 		if (errloc[i] < (DATA_BYTES * 8)) {
 			oob->data[byte_n] ^= 1 << bit_n;
-			oob_dbg("correct: data[%04d][%d]=0x%02X\n", byte_n, bit_n, oob->data[byte_n]);
+			//oob_dbg("correct: data[%04d][%d]=0x%02X\n", byte_n, bit_n, oob->data[byte_n]);
 		} else {
 			byte_n -= DATA_BYTES;
 			oob->ecc[byte_n] ^= 1 << bit_n;
-			oob_dbg("correct:  ecc[%04d][%d]=0x%02X\n", byte_n, bit_n, oob->ecc[byte_n]);
+			//oob_dbg("correct:  ecc[%04d][%d]=0x%02X\n", byte_n, bit_n, oob->ecc[byte_n]);
 		}
 	}
 }
@@ -100,4 +105,14 @@ void oob_flip_ecc(struct oob *oob, int i)
 
 	*ecc = ~orig_val;
 	oob_dbg("flip:  ecc[%04d]: 0x%02X --> 0x%02X\n", i, orig_val, *ecc);
+}
+
+void oob_data(struct oob *oob, int i)
+{
+	oob_dbg("data[%04d]: 0x%02X\n", i, oob->data[i]);
+}
+
+void oob_ecc(struct oob *oob, int i)
+{
+	oob_dbg("ecc[%04d]:  0x%02X\n", i, oob->ecc[i]);
 }

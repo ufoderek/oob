@@ -70,6 +70,40 @@ static int file_exist(const char *file_name, int status)
 	return !access(file_name, status);
 }
 
+static FILE *fopen_read(const char *file_name)
+{
+	FILE *fp;
+
+	if (!file_exist(file_name, R_OK)) {
+		fprintf(stderr, "%s not exist\n", file_name);
+		return NULL;
+	}
+
+	fp = fopen(file_name, "rb");
+	if (!fp) {
+		fprintf(stderr, "Error opening %s: %s\n", file_name, strerror(errno));
+	}
+	
+	return fp;
+}
+
+static FILE *fopen_write(const char *file_name)
+{
+	FILE *fp;
+
+	if (file_exist(file_name, F_OK)) {
+		fprintf(stderr, "%s exist\n", file_name);
+		return NULL;
+	}
+
+	fp = fopen(file_name, "wb");
+	if (!fp) {
+		fprintf(stderr, "Error opening %s: %s\n", file_name, strerror(errno));
+	}
+	
+	return fp;
+}
+
 static int generate_oob(const char *fdata_name, const char *foob_name)
 {
 	size_t read_bytes;
@@ -81,27 +115,13 @@ static int generate_oob(const char *fdata_name, const char *foob_name)
 	FILE *fdata;
 	FILE *foob;
 
-	if (!file_exist(fdata_name, R_OK)) {
-		fprintf(stderr, "%s not exist\n", fdata_name);
+	fdata = fopen_read(fdata_name);
+	if (!fdata)
 		exit(EXIT_FAILURE);
-	}
 
-	if (file_exist(foob_name, F_OK)) {
-		fprintf(stderr, "%s exist\n", foob_name);
+	foob = fopen_write(foob_name);
+	if (!foob)
 		exit(EXIT_FAILURE);
-	}
-
-	fdata = fopen(fdata_name, "rb");
-	if (!fdata) {
-		fprintf(stderr, "Error opening %s: %s\n", fdata_name, strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-
-	foob = fopen(foob_name, "wb");
-	if (!foob) {
-		fprintf(stderr, "Error opening %s: %s\n", foob_name, strerror(errno));
-		exit(EXIT_FAILURE);
-	}
 
 	oob = oob_init();
 	oob_info(oob);
@@ -112,8 +132,8 @@ static int generate_oob(const char *fdata_name, const char *foob_name)
 		exit(EXIT_FAILURE);
 	}
 
+	/* generate_oob */
 	while (!feof(fdata)) {
-
 		oob_reinit(oob);
 
 		read_bytes = fread(oob->data, 1, DATA_BYTES, fdata);
@@ -135,7 +155,24 @@ static int generate_oob(const char *fdata_name, const char *foob_name)
 	return 0;
 }
 
-static int verify_oob(const char *fdata_name, const char *foob_name)
+static char *str_append(const char *src, const char *append)
+{
+	char *new_str;
+	int len = strlen(src) + strlen(append);
+
+	if (!len)
+		return NULL;
+
+	new_str = malloc(len);
+	if (!new_str)
+		return NULL;
+
+	strcpy(new_str, src);
+	strcat(new_str, append);
+	return new_str;
+}
+
+static int verify_oob(const char *fdata_name, const char *foob_name, int correct)
 {
 	size_t read_bytes;
 	size_t left_bytes;
@@ -144,29 +181,33 @@ static int verify_oob(const char *fdata_name, const char *foob_name)
 	struct oob *oob;
 	struct oob_header oob_hdr;
 
+	char *fdata2_name;
+	char *foob2_name;
+
 	FILE *fdata;
 	FILE *foob;
+	FILE *fdata2;
+	FILE *foob2;
 
-	if (!file_exist(fdata_name, R_OK)) {
-		fprintf(stderr, "%s not exist\n", fdata_name);
+	fdata = fopen_read(fdata_name);
+	if (!fdata)
 		exit(EXIT_FAILURE);
-	}
 
-	if (!file_exist(foob_name, R_OK)) {
-		fprintf(stderr, "%s exist\n", foob_name);
+	foob = fopen_read(foob_name);
+	if (!foob)
 		exit(EXIT_FAILURE);
-	}
 
-	fdata = fopen(fdata_name, "rb");
-	if (!fdata) {
-		fprintf(stderr, "Error opening %s: %s\n", fdata_name, strerror(errno));
-		exit(EXIT_FAILURE);
-	}
+	if (correct) {
+		fdata2_name = str_append(fdata_name, ".fix");
+		foob2_name = str_append(foob_name, ".fix");
 
-	foob = fopen(foob_name, "rb");
-	if (!foob) {
-		fprintf(stderr, "Error opening %s: %s\n", foob_name, strerror(errno));
-		exit(EXIT_FAILURE);
+		fdata2 = fopen_write(fdata2_name);
+		if (!fdata2)
+			exit(EXIT_FAILURE);
+
+		foob2 = fopen_write(foob2_name);
+		if (!foob2)
+			exit(EXIT_FAILURE);
 	}
 
 	oob = oob_init();
@@ -180,23 +221,30 @@ static int verify_oob(const char *fdata_name, const char *foob_name)
 
 	if (!verify_oob_header(&OOB_HDR, &oob_hdr)) {
 		fprintf(stderr, "Invalid OOB header: %s\n", foob_name);
-		exit(EXIT_FAILURE);
+		fprintf(stderr, "Try continuing...\n");
+	}
+	
+	if (correct) {
+		write_bytes = fwrite(&OOB_HDR, 1, sizeof(OOB_HDR), foob2);
+		if (write_bytes != sizeof(OOB_HDR)) {
+			fprintf(stderr, "Error writing OOB header: \n", foob2_name);
+			exit(EXIT_FAILURE);
+		}
 	}
 
+	/* verify_oob */
 	while (!feof(fdata)) {
-
 		oob_reinit(oob);
-
-		read_bytes = fread(oob->data, 1, DATA_BYTES, fdata);
-		left_bytes = DATA_BYTES - read_bytes;
-		if (left_bytes)
-			memset(oob->data + read_bytes, 0, left_bytes);
-
 
 		read_bytes = fread(oob->ecc, 1, ECC_BYTES, foob);
 		left_bytes = ECC_BYTES - read_bytes;
 		if (left_bytes)
 			memset(oob->ecc + read_bytes, 0, left_bytes);
+
+		read_bytes = fread(oob->data, 1, DATA_BYTES, fdata);
+		left_bytes = DATA_BYTES - read_bytes;
+		if (left_bytes)
+			memset(oob->data + read_bytes, 0, left_bytes);
 
 		oob_decode(oob);
 		if (oob->errcnt == -EBADMSG) {
@@ -205,16 +253,33 @@ static int verify_oob(const char *fdata_name, const char *foob_name)
 		} else if (oob->errcnt == -EINVAL) {
 			fprintf(stderr, "Decode with invalid parameters\n");
 			exit(EXIT_FAILURE);
+		} else if (oob->errcnt > 0) {
+			printf("Correctable error count: %d\n", oob->errcnt);
 		}
-		//pr_debug("errcnt = %d\n", oob->errcnt);
+		
+		if (correct) {
+			oob_correct(oob);
+
+			write_bytes = fwrite(oob->data, 1, read_bytes, fdata2);
+			if (write_bytes != read_bytes) {
+				fprintf(stderr, "Error writing %s\n", fdata2_name);
+				exit(EXIT_FAILURE);
+			}
+
+			write_bytes = fwrite(oob->ecc, 1, ECC_BYTES, foob2);
+			if (write_bytes != ECC_BYTES) {
+				fprintf(stderr, "Error writing %s\n", foob2_name);
+				exit(EXIT_FAILURE);
+			}
+		}
 	}
 	fclose(fdata);
 	fclose(foob);
 	oob_free(oob);
-	return 0;
-}
-static int correct_oob(const char *fdata_name, const char *foob_name)
-{
+	if (correct) {
+		fclose(fdata2);
+		fclose(foob2);
+	}
 	return 0;
 }
 
@@ -224,53 +289,17 @@ int main(int argc, const char *argv[])
 	int ret;
 	struct oob *oob;
 
-	if (argc != 4) {
-		fprintf(stderr, "Invalid arguments\n");
-		exit(EXIT_FAILURE);
-	}
-
-	if (!strcmp(argv[1], "generate")) {
+	if ((argc == 4) && !strcmp(argv[1], "generate")) {
 		ret = generate_oob(argv[2], argv[3]);
-	} else if (!strcmp(argv[1], "verify")) {
-		ret = verify_oob(argv[2], argv[3]);
-	} else if (!strcmp(argv[1], "corret")) {
-		ret = correct_oob(argv[2], argv[3]);
+	} else if ((argc == 4) && !strcmp(argv[1], "verify")) {
+		ret = verify_oob(argv[2], argv[3], 0);
+	} else if ((argc == 4) && !strcmp(argv[1], "correct")) {
+		ret = verify_oob(argv[2], argv[3], 1);
 	} else {
 		fprintf(stderr, "Invalid arguments: %s\n", argv[1]);
 		exit(EXIT_FAILURE);
 	}
 
 	return ret;
-
-	/*
-	oob = oob_init();
-	oob_reinit(oob);
-	oob_info(oob);
-
-	memset(oob->data, 1, sizeof(oob->data));
-	oob_encode(oob);
-
-	//oob_dump_ecc(oob);
-
-	for (i=0;i<(128/8);i++) {
-		oob_flip_data(oob, 3+i);
-	}
-
-	oob_flip_data(oob, 0);
-	//oob_flip_ecc(oob, 6);
-
-	oob_decode(oob);
-	if (oob->errcnt == -EBADMSG) {
-		fprintf(stderr, "Decode failed\n");
-		return -EBADMSG;
-	} else if (oob->errcnt == -EINVAL) {
-		fprintf(stderr, "Decode with invalid parameters\n");
-		return -EINVAL;
-	}
-	pr_debug("errcnt = %d\n", oob->errcnt);
-
-	oob_correct(oob);
-	oob_free(oob);
-	*/
 	return 0;
 }
