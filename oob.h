@@ -20,6 +20,16 @@ struct oob
 	struct bch_control *bch;
 };
 
+struct oob_header
+{
+	char magic[4];
+	uint8_t ver;
+	uint8_t bch_m;
+	uint16_t ecc_cap;
+	uint16_t data_bytes;
+	uint16_t ecc_bytes;
+};
+
 struct oob *oob_init(void);
 void oob_reinit(struct oob *oob);
 void oob_free(struct oob *oob);

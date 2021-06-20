@@ -11,14 +11,13 @@ DEFS=$(LINUX_BCH_CONST_PARAMS)
 INC_COMPAT=-Iinclude_compat
 INCS=-Iinclude $(INC_COMPAT)
 
+all: oob bitflip
+
 oob: main.o oob.o bch.o
 	$(GCC) $(CFLAGS) $(LIBS) $^ -o $@
-	rm /home/ufoderek/wk/test.tar.xz.oob || echo "."
-	rm /home/ufoderek/wk/test.tar.xz.fix || echo "."
-	rm /home/ufoderek/wk/test.tar.xz.oob.fix || echo "."
-	./oob generate /home/ufoderek/wk/test.tar.xz /home/ufoderek/wk/test.tar.xz.oob
-	./oob verify /home/ufoderek/wk/test.tar.xz /home/ufoderek/wk/test.tar.xz.oob
-	./oob correct /home/ufoderek/wk/test.tar.xz /home/ufoderek/wk/test.tar.xz.oob
+
+bitflip: bitflip.o
+	$(GCC) $(CFLAGS) $(LIBS) $^ -o $@
 
 %.o: %.c
 	$(GCC) $(CFLAGS) $(DEFS) $(INCS) -c $< -o $@

@@ -11,16 +11,6 @@
 #define oob_dbg(...) do { } while (0)
 #endif
 
-struct oob_header
-{
-	char magic[4];
-	uint8_t ver;
-	uint8_t bch_m;
-	uint16_t ecc_cap;
-	uint16_t data_bytes;
-	uint16_t ecc_bytes;
-};
-
 static const struct oob_header OOB_HDR =
 {
 	.magic = "OOB",
