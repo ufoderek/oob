@@ -178,6 +178,7 @@ static char *str_append(const char *src, const char *append)
 
 static int verify_oob(const char *fdata_name, const char *foob_name, int correct)
 {
+	int i = 0;
 	size_t read_bytes;
 	size_t left_bytes;
 	size_t write_bytes;
@@ -258,11 +259,14 @@ static int verify_oob(const char *fdata_name, const char *foob_name, int correct
 			fprintf(stderr, "Decode with invalid parameters\n");
 			exit(EXIT_FAILURE);
 		} else if (oob->errcnt > 0) {
-			printf("Correctable error count: %d\n", oob->errcnt);
+			if (!correct)
+				printf("Section #%d: %d bitflips\n", i, oob->errcnt);
 		}
 		
 		if (correct) {
 			oob_correct(oob);
+
+			printf("Section #%d: Fix %d bitflips\n", i, oob->errcnt);
 
 			write_bytes = fwrite(oob->data, 1, read_bytes, fdata2);
 			if (write_bytes != read_bytes) {
@@ -276,6 +280,7 @@ static int verify_oob(const char *fdata_name, const char *foob_name, int correct
 				exit(EXIT_FAILURE);
 			}
 		}
+		i++;
 	}
 	fclose(fdata);
 	fclose(foob);
